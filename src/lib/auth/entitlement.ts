@@ -151,25 +151,52 @@ export async function resolveAccess(bbl: string): Promise<AccessDecision> {
 /**
  * Record a lookup. Also what enforces the free-tier limit, so it must be called
  * exactly once per full report view — and never for a teaser.
+ *
+ * Returns false only when a free-tier claim was requested but lost a race to a
+ * concurrent claim for the same email (see `claim_free_lookup`) — the caller
+ * must not render the full report in that case, since the grant it was
+ * counting on has just been taken by the other request.
  */
 export async function recordLookup(params: {
   bbl: string;
   address: string | null;
   decision: AccessDecision;
-}): Promise<void> {
+}): Promise<boolean> {
   const { bbl, address, decision } = params;
-  if (!hasServiceRole() || !decision.canViewFullReport) return;
+  if (!hasServiceRole() || !decision.canViewFullReport) return true;
 
   // Re-viewing a property already counted must not burn another lookup.
-  if (decision.reason.startsWith("You already used")) return;
+  if (decision.reason.startsWith("You already used")) return true;
 
-  const { error } = await supabaseService().from("lookups").insert({
-    account_id: decision.accountId,
-    email: decision.email,
-    bbl,
-    address,
-    entitlement: decision.entitlement === "anonymous" ? "free" : decision.entitlement,
+  // Subscription and single-purchase grants aren't rate-limited, so there is
+  // nothing to race — record them with a plain insert.
+  if (decision.entitlement !== "free") {
+    const { error } = await supabaseService().from("lookups").insert({
+      account_id: decision.accountId,
+      email: decision.email,
+      bbl,
+      address,
+      entitlement: decision.entitlement,
+    });
+    if (error) console.error("could not record lookup", error.message);
+    return true;
+  }
+
+  // Free tier: the check (resolveAccess) and the claim happen in separate
+  // requests, so two concurrent first-views could otherwise both observe an
+  // unused lookup. `claim_free_lookup` folds the check and insert into one
+  // atomic, per-email-locked statement.
+  const { data: claimed, error } = await supabaseService().rpc("claim_free_lookup", {
+    p_email: decision.email,
+    p_bbl: bbl,
+    p_address: address,
+    p_account_id: decision.accountId,
   });
 
-  if (error) console.error("could not record lookup", error.message);
+  if (error) {
+    console.error("could not claim free lookup", error.message);
+    return true;
+  }
+
+  return Boolean(claimed);
 }
