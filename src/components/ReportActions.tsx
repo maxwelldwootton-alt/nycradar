@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Notice } from "@/components/ui/Notice";
+import { buttonClass, fieldClass } from "@/components/ui/styles";
 
 export function ReportActions({ bbl }: { bbl: string }) {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
@@ -36,10 +38,7 @@ export function ReportActions({ bbl }: { bbl: string }) {
 
   return (
     <div className="mt-6 flex flex-wrap items-center gap-3">
-      <a
-        href={`/report/${bbl}/pdf`}
-        className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
-      >
+      <a href={`/report/${bbl}/pdf`} className={buttonClass({ variant: "outline" })}>
         Download PDF
       </a>
 
@@ -47,7 +46,7 @@ export function ReportActions({ bbl }: { bbl: string }) {
         type="button"
         onClick={createShareLink}
         disabled={status === "creating"}
-        className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+        className={buttonClass({ variant: "outline" })}
       >
         {status === "creating"
           ? "Creating link…"
@@ -56,18 +55,28 @@ export function ReportActions({ bbl }: { bbl: string }) {
             : "Create shareable link"}
       </button>
 
+      {/* The button's own label was the only signal that the copy succeeded,
+          which a screen reader never hears. */}
+      <span role="status" aria-live="polite" className="sr-only">
+        {status === "copied" ? "Shareable link copied to clipboard" : ""}
+      </span>
+
       {shareUrl && (
         <input
           readOnly
           value={shareUrl}
           onFocus={(e) => e.currentTarget.select()}
           aria-label="Shareable report link"
-          className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
+          className={fieldClass({
+            className: "min-w-0 flex-1 bg-sunken font-mono text-xs",
+          })}
         />
       )}
 
       {status === "error" && message && (
-        <p className="w-full text-sm text-red-700 dark:text-red-400">{message}</p>
+        <Notice tone="critical" role="alert" className="w-full">
+          {message}
+        </Notice>
       )}
     </div>
   );

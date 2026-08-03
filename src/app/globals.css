@@ -1,26 +1,120 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/**
+ * Semantic tokens, not a palette.
+ *
+ * Components name the *role* (`bg-surface`, `text-ink-muted`, `border-line`)
+ * and the token flips under `prefers-color-scheme`, so dark mode is correct by
+ * construction rather than by remembering a `dark:` twin on every class.
+ *
+ * The hex comments name the Tailwind slate/blue/amber/red stop each value came
+ * from — the app used those directly before this file existed, and the PDF
+ * stylesheet still has to hardcode them (see src/lib/pdf/ReportDocument.tsx).
+ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  /* Lets native controls — the borough <select>, scrollbars, the search
+     field's clear button — follow the theme instead of rendering light-on-dark. */
+  color-scheme: light dark;
+
+  --canvas: #f8fafc; /* slate-50   page */
+  --surface: #ffffff; /* white      cards, controls, table rows */
+  --sunken: #f1f5f9; /* slate-100  recessed panels, pills */
+  --line: #e2e8f0; /* slate-200  hairlines, card borders */
+  /* slate-500, and the same value in both schemes on purpose: WCAG 1.4.11 wants
+     3:1 for a control's boundary, and this is the one stop that clears it
+     against white (4.8:1), the canvas (4.5:1) and the dark surface (3.4:1).
+     The slate-300 this replaced measured 1.5:1 — the edge of a text input was
+     not, strictly speaking, visible. */
+  --line-strong: #64748b;
+  --ink: #0f172a; /* slate-900  headings */
+  --ink-body: #475569; /* slate-600  body copy */
+  --ink-muted: #64748b; /* slate-500  meta, fine print */
+  --accent: #1d4ed8; /* blue-700   links, primary CTA */
+  --accent-hover: #1e40af; /* blue-800 */
+  --accent-ink: #ffffff; /*            text on an accent fill */
+  --accent-soft: #eff6ff; /* blue-50    accent-tinted surface */
+  --caution: #b45309; /* amber-700  judgments, warnings */
+  --caution-soft: #fffbeb; /* amber-50 */
+  --caution-line: #fcd34d; /* amber-300 */
+  --critical: #b91c1c; /* red-700    open violations, errors */
+  --critical-soft: #fee2e2; /* red-100 */
+  --critical-line: #fca5a5; /* red-300 */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* One neutral family. The page used to be #0a0a0a (pure black) while every
+       surface was slate-900 (#0f172a, blue-tinted) — the two read as different
+       materials. Both are slate now, with the same light-on-dark lift. */
+    --canvas: #020617; /* slate-950 */
+    --surface: #0f172a; /* slate-900 */
+    --sunken: #1e293b; /* slate-800 */
+    --line: #1e293b; /* slate-800 */
+    /* Not slate-700: that measures 1.6:1 against the dark surface. See above. */
+    --line-strong: #64748b; /* slate-500 */
+    --ink: #f1f5f9; /* slate-100 */
+    --ink-body: #cbd5e1; /* slate-300 */
+    --ink-muted: #94a3b8; /* slate-400 — slate-500 on this canvas failed AA */
+    --accent: #60a5fa; /* blue-400 */
+    --accent-hover: #93c5fd; /* blue-300 */
+    --accent-ink: #0b1220;
+    --accent-soft: #172554; /* blue-950 */
+    --caution: #fcd34d; /* amber-300 */
+    --caution-soft: #2a1f06;
+    --caution-line: #78350f; /* amber-900 */
+    --critical: #fca5a5; /* red-300 */
+    --critical-soft: #450a0a; /* red-950 */
+    --critical-line: #7f1d1d; /* red-900 */
   }
 }
 
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-body: var(--ink-body);
+  --color-ink-muted: var(--ink-muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-caution: var(--caution);
+  --color-caution-soft: var(--caution-soft);
+  --color-caution-line: var(--caution-line);
+  --color-critical: var(--critical);
+  --color-critical-soft: var(--critical-soft);
+  --color-critical-line: var(--critical-line);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--canvas);
+  color: var(--ink-body);
+  /* Deliberately no font-family. The scaffold set Arial here, which overrode
+     the Geist variables layout.tsx puts on <html> — the fonts downloaded on
+     every page load and never rendered. `font-sans` on <body> governs now. */
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* Covers the search skeleton's pulse and every `motion-safe:transition-*` the
+   components use, so neither has to be audited individually. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

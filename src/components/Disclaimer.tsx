@@ -21,9 +21,9 @@ export function Disclaimer({ dataAsOf }: { dataAsOf: string | null }) {
   return (
     <section
       aria-label="Important information about this report"
-      className="mt-10 rounded-lg border border-slate-200 bg-slate-50 p-5 text-sm leading-relaxed text-slate-600 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-400"
+      className="mt-10 rounded-xl border border-line bg-sunken p-5 text-sm leading-relaxed text-ink-body"
     >
-      <h2 className="mb-2 font-semibold text-slate-700 dark:text-slate-300">
+      <h2 className="mb-2 font-semibold text-ink">
         Important information
       </h2>
       <p>

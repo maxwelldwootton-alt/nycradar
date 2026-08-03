@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { Notice } from "@/components/ui/Notice";
+import { buttonClass, cardClass, fieldClass } from "@/components/ui/styles";
 
 export function LoginForm({ next }: { next: string }) {
   const [email, setEmail] = useState("");
@@ -42,11 +44,11 @@ export function LoginForm({ next }: { next: string }) {
 
   if (state === "sent") {
     return (
-      <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-900">
-        <p className="text-slate-800 dark:text-slate-200">
+      <div className={cardClass({ className: "p-5" })}>
+        <p className="text-ink">
           Check <strong>{email}</strong> for your sign-in link.
         </p>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+        <p className="mt-2 text-sm text-ink-body">
           The link expires shortly. You can close this tab once you&apos;ve opened it.
         </p>
       </div>
@@ -63,17 +65,19 @@ export function LoginForm({ next }: { next: string }) {
         onChange={(e) => setEmail(e.target.value)}
         placeholder="you@brokerage.com"
         aria-label="Email address"
-        className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none focus:border-slate-500 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+        className={fieldClass({ size: "lg", className: "w-full" })}
       />
       <button
         type="submit"
         disabled={state === "sending"}
-        className="w-full rounded-lg bg-slate-900 px-4 py-3 font-medium text-white hover:bg-slate-700 disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
+        className={buttonClass({ variant: "accent", size: "lg", full: true })}
       >
         {state === "sending" ? "Sending…" : "Email me a sign-in link"}
       </button>
       {state === "error" && message && (
-        <p className="text-sm text-red-700 dark:text-red-400">{message}</p>
+        <Notice tone="critical" role="alert">
+          {message}
+        </Notice>
       )}
     </form>
   );

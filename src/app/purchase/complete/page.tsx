@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { stripe, isStripeConfigured } from "@/lib/stripe/client";
 import { supabaseService, hasServiceRole } from "@/lib/supabase/server";
+import { buttonClass, cardClass } from "@/components/ui/styles";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Purchase complete · ViolationRadar" };
@@ -51,34 +52,42 @@ export default async function PurchaseCompletePage({
   }
 
   return (
-    <main className="mx-auto w-full max-w-xl px-6 py-20">
-      <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+    <main id="main" className="mx-auto w-full max-w-xl px-6 py-20">
+      <h1 className="flex items-center gap-3 text-2xl font-semibold tracking-tight text-ink">
+        {pending && (
+          // The webhook is the source of truth and may not have landed; the dot
+          // is what says "still working" rather than "stuck".
+          <span
+            aria-hidden="true"
+            className="size-2.5 shrink-0 animate-pulse rounded-full bg-accent"
+          />
+        )}
         {pending ? "Finishing your purchase…" : "Your report is ready"}
       </h1>
 
       {pending ? (
-        <p className="mt-3 text-slate-600 dark:text-slate-400">
+        <p className="mt-3 text-ink-body">
           Payment confirmations can take a few seconds to arrive. Refresh this
           page shortly — a link to your report will appear here, and we&apos;ll
           email it to you as well.
         </p>
       ) : (
         <>
-          <p className="mt-3 text-slate-600 dark:text-slate-400">
+          <p className="mt-3 text-ink-body">
             Thanks. Your full report is available at the link below. Bookmark it —
             it stays accessible without an account.
           </p>
           {shareToken ? (
             <Link
               href={`/r/${shareToken}`}
-              className="mt-6 inline-block rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900"
+              className={buttonClass({ variant: "accent", size: "lg", className: "mt-6" })}
             >
               Open your report
             </Link>
           ) : bbl ? (
             <Link
               href={`/report/${bbl}`}
-              className="mt-6 inline-block rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900"
+              className={buttonClass({ variant: "accent", size: "lg", className: "mt-6" })}
             >
               Open your report
             </Link>
@@ -87,18 +96,15 @@ export default async function PurchaseCompletePage({
       )}
 
       {/* Post-purchase upsell (Flow B1 step 4). */}
-      <section className="mt-10 rounded-lg border border-slate-200 p-5 dark:border-slate-700">
-        <h2 className="font-semibold text-slate-900 dark:text-slate-100">
+      <section className={cardClass({ className: "mt-10 p-5" })}>
+        <h2 className="font-semibold text-ink">
           Checking more than one address this month?
         </h2>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        <p className="mt-1 text-sm text-ink-body">
           Unlimited lookups, PDF export and shareable links are $199/month.
         </p>
         <form action="/api/checkout/subscription" method="post" className="mt-3">
-          <button
-            type="submit"
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
+          <button type="submit" className={buttonClass({ variant: "outline" })}>
             Switch to unlimited
           </button>
         </form>

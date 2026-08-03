@@ -16,19 +16,38 @@ import {
 } from "@react-pdf/renderer";
 import type { ViolationReport } from "@/lib/nyc/types";
 import { severityLabel } from "@/lib/nyc/classify";
+import { severityTone, type Tone } from "@/components/ui/severity";
 
+/**
+ * Every colour here names the `--token` in src/app/globals.css it mirrors, so
+ * the two cannot drift silently. The PDF is a print artefact and therefore
+ * tracks the *light* scheme only — there is no dark paper.
+ *
+ * Typeface is @react-pdf's built-in Helvetica rather than the Geist the site
+ * uses. `Font.register` needs a TTF by URL or filesystem path at render time,
+ * and this renders inside a serverless route that already calls four city APIs
+ * under `maxDuration = 120`; a per-render font fetch buys a typeface match at
+ * the cost of a new failure mode. The consistency the product needs is in the
+ * figures, colours and wording, which this file does match.
+ */
 const styles = StyleSheet.create({
-  page: { paddingTop: 42, paddingBottom: 70, paddingHorizontal: 42, fontSize: 9, color: "#0f172a" },
+  page: { paddingTop: 42, paddingBottom: 70, paddingHorizontal: 42, fontSize: 9, color: "#0f172a" }, // --ink
+  brandBar: { height: 2, backgroundColor: "#1d4ed8", marginBottom: 10 }, // --accent
+  brand: { fontSize: 8, fontWeight: 700, color: "#1e40af", letterSpacing: 0.6, marginBottom: 3 }, // --accent-hover, for print headroom
   h1: { fontSize: 16, fontWeight: 700, marginBottom: 3 },
-  sub: { fontSize: 9, color: "#475569" },
+  sub: { fontSize: 9, color: "#475569" }, // --ink-body
   statRow: { flexDirection: "row", gap: 8, marginTop: 14, marginBottom: 6 },
-  stat: { flex: 1, borderWidth: 1, borderColor: "#e2e8f0", borderRadius: 4, padding: 8 },
-  statEmph: { borderColor: "#fcd34d", backgroundColor: "#fffbeb" },
-  statLabel: { fontSize: 6.5, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.4 },
+  stat: { flex: 1, borderWidth: 1, borderColor: "#e2e8f0", borderRadius: 4, padding: 8 }, // --line
+  statCaution: { borderColor: "#fcd34d", backgroundColor: "#fffbeb" }, // --caution-line / --caution-soft
+  statCritical: { borderColor: "#fca5a5", backgroundColor: "#fee2e2" }, // --critical-line / --critical-soft
+  statLabel: { fontSize: 6.5, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.4 }, // --ink-muted
   statValue: { fontSize: 14, fontWeight: 700, marginTop: 2 },
+  statValueCaution: { color: "#b45309" }, // --caution
+  statValueCritical: { color: "#b91c1c" }, // --critical
   notice: {
     marginTop: 8, padding: 6, borderRadius: 3,
-    backgroundColor: "#eff6ff", color: "#1e3a8a", fontSize: 8,
+    // Neutral, matching the web report: blue now means "interactive" system-wide.
+    backgroundColor: "#f1f5f9", color: "#475569", fontSize: 8, // --sunken / --ink-body
   },
   h2: {
     fontSize: 11, fontWeight: 700, marginTop: 18, marginBottom: 2,
@@ -42,14 +61,24 @@ const styles = StyleSheet.create({
   cClass: { width: 70 },
   cDesc: { flex: 1, paddingRight: 6 },
   cAmt: { width: 52, textAlign: "right" },
-  open: { color: "#b91c1c", fontWeight: 700 },
+  open: { color: "#b91c1c", fontWeight: 700 }, // --critical
+  critical: { color: "#b91c1c", fontWeight: 700 },
+  caution: { color: "#b45309", fontWeight: 700 }, // --caution
   muted: { color: "#64748b" },
   footer: {
     position: "absolute", bottom: 26, left: 42, right: 42,
     fontSize: 6.5, color: "#64748b", lineHeight: 1.4,
     borderTopWidth: 1, borderTopColor: "#e2e8f0", paddingTop: 6,
   },
+  footerBrand: { color: "#1e40af", fontWeight: 700 },
 });
+
+/** Same tone decision the web report uses — imported, not re-implemented. */
+const SEVERITY_STYLES: Record<Tone, typeof styles.muted> = {
+  neutral: styles.muted,
+  caution: styles.caution,
+  critical: styles.critical,
+};
 
 function money(n: number | null): string {
   if (!n) return "—";
@@ -81,6 +110,8 @@ export function ReportDocument({ report }: { report: ViolationReport }) {
     <Document title={`${title} — violation report`}>
       <Page size="LETTER" style={styles.page} wrap>
         <View>
+          <View style={styles.brandBar} />
+          <Text style={styles.brand}>VIOLATIONRADAR</Text>
           <Text style={styles.h1}>{title}</Text>
           <Text style={styles.sub}>
             {property.borough}
@@ -90,22 +121,46 @@ export function ReportDocument({ report }: { report: ViolationReport }) {
           <Text style={styles.sub}>Data as of {formatDate(report.dataAsOf)}</Text>
         </View>
 
+        {/* Tones match ReportView's stat cards exactly — a PDF that emphasises
+            different figures than the page it came from is the drift this file
+            exists to avoid. */}
         <View style={styles.statRow}>
-          <View style={styles.stat}>
+          <View style={[styles.stat, ...(summary.openViolations > 0 ? [styles.statCritical] : [])]}>
             <Text style={styles.statLabel}>Open violations</Text>
-            <Text style={styles.statValue}>{summary.openViolations.toLocaleString()}</Text>
+            <Text
+              style={[
+                styles.statValue,
+                ...(summary.openViolations > 0 ? [styles.statValueCritical] : []),
+              ]}
+            >
+              {summary.openViolations.toLocaleString()}
+            </Text>
           </View>
           <View style={styles.stat}>
             <Text style={styles.statLabel}>Total on record</Text>
             <Text style={styles.statValue}>{summary.totalViolations.toLocaleString()}</Text>
           </View>
-          <View style={[styles.stat, ...(summary.totalBalanceDue > 0 ? [styles.statEmph] : [])]}>
+          <View style={[styles.stat, ...(summary.totalBalanceDue > 0 ? [styles.statCaution] : [])]}>
             <Text style={styles.statLabel}>Outstanding balance</Text>
-            <Text style={styles.statValue}>{money(summary.totalBalanceDue)}</Text>
+            <Text
+              style={[
+                styles.statValue,
+                ...(summary.totalBalanceDue > 0 ? [styles.statValueCaution] : []),
+              ]}
+            >
+              {money(summary.totalBalanceDue)}
+            </Text>
           </View>
-          <View style={[styles.stat, ...(summary.docketedJudgments > 0 ? [styles.statEmph] : [])]}>
+          <View style={[styles.stat, ...(summary.docketedJudgments > 0 ? [styles.statCaution] : [])]}>
             <Text style={styles.statLabel}>Docketed judgments</Text>
-            <Text style={styles.statValue}>{summary.docketedJudgments.toLocaleString()}</Text>
+            <Text
+              style={[
+                styles.statValue,
+                ...(summary.docketedJudgments > 0 ? [styles.statValueCaution] : []),
+              ]}
+            >
+              {summary.docketedJudgments.toLocaleString()}
+            </Text>
           </View>
         </View>
 
@@ -141,7 +196,12 @@ export function ReportDocument({ report }: { report: ViolationReport }) {
                       {v.status === "open" ? "Open" : v.status === "closed" ? "Closed" : "—"}
                     </Text>
                     <Text style={[styles.cDate, styles.muted]}>{v.issuedDate ?? "—"}</Text>
-                    <Text style={[styles.cClass, styles.muted]}>
+                    <Text
+                      style={[
+                        styles.cClass,
+                        SEVERITY_STYLES[severityTone(v.agency, v.severity)],
+                      ]}
+                    >
                       {severityLabel(v.agency, v.severity) ?? "—"}
                     </Text>
                     <Text style={styles.cDesc}>
@@ -164,7 +224,8 @@ export function ReportDocument({ report }: { report: ViolationReport }) {
 
         {/* Repeated on every page: printed pages get separated from each other. */}
         <Text style={styles.footer} fixed>
-          ViolationRadar · Compiled from public NYC Open Data records published by DOB, HPD and
+          <Text style={styles.footerBrand}>ViolationRadar</Text>
+          {" · "}Compiled from public NYC Open Data records published by DOB, HPD and
           OATH as of {formatDate(report.dataAsOf)}. Informational only. Not legal advice, not a
           title search, and not a substitute for independent verification before closing.
           Report generated {formatDate(report.generatedAt)}.

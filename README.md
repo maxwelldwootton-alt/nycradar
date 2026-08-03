@@ -98,9 +98,12 @@ npm run typecheck    # tsc --noEmit
 npm run test         # unit tests (offline)
 npm run test:live    # integration tests against live city APIs
 npm run report -- 3000017501   # CLI report for a BBL
+npm run screenshots            # visual sweep, light + dark, mobile + desktop
 ```
 
 `npm run report` is also the tool for running the PRD's Phase 0 validation reports by hand.
+
+`npm run screenshots` drives a running dev server with Playwright and writes PNGs to `screenshots/`. Because there is deliberately no theme toggle — the app follows `prefers-color-scheme` — Playwright's `colorScheme` context option is the only practical way to check the dark palette. Add `REPORT_BBL=3000017501` to include a report page, and `CHROMIUM_PATH=…` if the environment already has a Chromium that doesn't match the installed Playwright's expected build.
 
 ## Testing
 
