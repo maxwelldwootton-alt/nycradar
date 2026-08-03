@@ -3,6 +3,7 @@ import { generateReport } from "@/lib/nyc/report";
 import { getProperty } from "@/lib/nyc/property";
 import { normalizeBbl } from "@/lib/nyc/bbl";
 import { ReportDocument } from "@/lib/pdf/ReportDocument";
+import { resolveAccess } from "@/lib/auth/entitlement";
 
 export const dynamic = "force-dynamic";
 // PDF generation for a large property is well over the default budget.
@@ -16,6 +17,15 @@ export async function GET(
   const bbl = normalizeBbl(raw);
   if (!bbl) {
     return new Response("Invalid BBL", { status: 400 });
+  }
+
+  // Gate the PDF exactly as the page is gated. Without this the paywall is
+  // trivially bypassed by requesting the export URL directly.
+  const access = await resolveAccess(bbl);
+  if (!access.canViewFullReport) {
+    return new Response("This report requires a free lookup or a subscription.", {
+      status: 402,
+    });
   }
 
   try {

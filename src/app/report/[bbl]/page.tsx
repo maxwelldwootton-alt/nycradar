@@ -5,10 +5,13 @@ import { generateReport } from "@/lib/nyc/report";
 import { getProperty } from "@/lib/nyc/property";
 import { normalizeBbl } from "@/lib/nyc/bbl";
 import { ReportView } from "@/components/ReportView";
+import { ReportTeaser } from "@/components/ReportTeaser";
 import { ReportActions } from "@/components/ReportActions";
+import { recordLookup, resolveAccess } from "@/lib/auth/entitlement";
 
 // Reports hit four live city APIs; nothing here is statically renderable.
 export const dynamic = "force-dynamic";
+export const maxDuration = 120;
 
 export async function generateMetadata({
   params,
@@ -21,8 +24,6 @@ export async function generateMetadata({
   const property = await getProperty(bbl).catch(() => null);
   return {
     title: `${property?.address ?? `BBL ${bbl}`} · Violation report`,
-    // Reports are per-property public records but there is no reason to have
-    // them indexed; sharing happens through explicit links.
     robots: { index: false, follow: false },
   };
 }
@@ -39,7 +40,16 @@ export default async function ReportPage({
   // Property metadata is a nicety — a valid BBL with no PLUTO row should still
   // produce a report, since violations can outlive a lot merge.
   const property = await getProperty(bbl).catch(() => null);
-  const report = await generateReport(bbl, { property: property ?? undefined });
+
+  const [report, access] = await Promise.all([
+    generateReport(bbl, { property: property ?? undefined }),
+    resolveAccess(bbl),
+  ]);
+
+  if (access.canViewFullReport) {
+    // Must happen exactly once per full view — this is what enforces FR4.
+    await recordLookup({ bbl, address: property?.address ?? null, decision: access });
+  }
 
   return (
     <main className="mx-auto w-full max-w-4xl px-6 py-10">
@@ -49,10 +59,21 @@ export default async function ReportPage({
       >
         ← New search
       </Link>
+
       <div className="mt-6">
-        <ReportView report={report} />
+        {access.canViewFullReport ? (
+          <>
+            <ReportView report={report} />
+            <ReportActions bbl={bbl} />
+          </>
+        ) : (
+          <ReportTeaser
+            report={report}
+            reason={access.reason}
+            signedIn={Boolean(access.email)}
+          />
+        )}
       </div>
-      <ReportActions bbl={bbl} />
     </main>
   );
 }

@@ -4,6 +4,7 @@ import { generateReport } from "@/lib/nyc/report";
 import { getProperty } from "@/lib/nyc/property";
 import { normalizeBbl } from "@/lib/nyc/bbl";
 import { createShareLink, ShareUnavailableError } from "@/lib/nyc/share";
+import { resolveAccess } from "@/lib/auth/entitlement";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -21,10 +22,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid BBL" }, { status: 400 });
   }
 
+  // A share link is a full report handed to an unauthenticated viewer, so the
+  // creator must be entitled to the full report themselves.
+  const access = await resolveAccess(bbl);
+  if (!access.canViewFullReport) {
+    return NextResponse.json(
+      { error: "This report requires a free lookup or a subscription." },
+      { status: 402 },
+    );
+  }
+
   try {
     const property = await getProperty(bbl).catch(() => null);
     const report = await generateReport(bbl, { property: property ?? undefined });
-    const { token } = await createShareLink(report);
+    const { token } = await createShareLink(report, { accountId: access.accountId });
 
     const base =
       process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
