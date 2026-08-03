@@ -17,6 +17,57 @@ function money(n: number): string {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 }
 
+function statusLabel(status: NormalizedViolation["status"]): string {
+  return status === "open" ? "Open" : status === "closed" ? "Closed" : "Unknown";
+}
+
+function correctionNote(correctionType: NormalizedViolation["correctionType"]): string | null {
+  if (correctionType === "unknown") return null;
+  return correctionType === "administrative" ? "paperwork" : "physical correction";
+}
+
+/**
+ * The phone presentation of a violation.
+ *
+ * The table below needs 44rem to lay out five columns and forces a horizontal
+ * scroll on a 390px screen — which on a due-diligence document means the
+ * balance column, the one a reader is looking for, sits off-screen by default.
+ * Same data, stacked.
+ */
+function ViolationCard({ v }: { v: NormalizedViolation }) {
+  const label = severityLabel(v.agency, v.severity);
+  const note = correctionNote(v.correctionType);
+
+  return (
+    <li className="rounded-xl border border-line bg-surface p-4">
+      <div className="flex items-start justify-between gap-3">
+        <Badge tone={v.status === "open" ? "critical" : "neutral"}>
+          {statusLabel(v.status)}
+        </Badge>
+        <span className="shrink-0 text-sm font-medium tabular-nums text-ink">
+          {v.balanceDue ? money(v.balanceDue) : "—"}
+        </span>
+      </div>
+
+      <p className="mt-2.5 text-sm leading-relaxed text-ink">{v.description ?? "—"}</p>
+
+      {(label || v.judgmentDocketed) && (
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
+          {label && <Badge tone={severityTone(v.agency, v.severity)}>{label}</Badge>}
+          {v.judgmentDocketed && (
+            <Badge tone="caution">Judgment docketed {v.judgmentDocketed}</Badge>
+          )}
+        </div>
+      )}
+
+      <p className="mt-2.5 text-xs text-ink-muted">
+        Issued {v.issuedDate ?? "date unavailable"}
+        {note && ` · ${note}`}
+      </p>
+    </li>
+  );
+}
+
 function ViolationRow({ v }: { v: NormalizedViolation }) {
   const label = severityLabel(v.agency, v.severity);
   return (
@@ -59,6 +110,10 @@ function ViolationRow({ v }: { v: NormalizedViolation }) {
 }
 
 function AgencyBlock({ section }: { section: AgencySection }) {
+  // Hoisted so the card list, the table and the "showing the first 100" note
+  // below can't disagree about how many rows were actually rendered.
+  const rows = section.violations.slice(0, 100);
+
   return (
     <section className="mt-10">
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line pb-2">
@@ -85,9 +140,16 @@ function AgencyBlock({ section }: { section: AgencySection }) {
               total.
             </Notice>
           )}
-          {/* Bleeds to the viewport edge on phones, so a wide table scrolls in
-              its own right rather than being clipped inside the page gutter. */}
-          <div className="mt-3 -mx-6 overflow-x-auto px-6 sm:mx-0 sm:px-0">
+          {/* Two presentations of the same rows. Both use `display`, so
+              whichever is hidden leaves the accessibility tree entirely and a
+              screen reader is never offered the list twice. */}
+          <ul className="mt-3 space-y-2 sm:hidden">
+            {rows.map((v) => (
+              <ViolationCard key={`${v.sourceDataset}-${v.sourceId}`} v={v} />
+            ))}
+          </ul>
+
+          <div className="mt-3 hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[44rem] text-left text-sm">
               <thead>
                 <tr className="border-b border-line text-xs tracking-wide text-ink-muted uppercase">
@@ -99,7 +161,7 @@ function AgencyBlock({ section }: { section: AgencySection }) {
                 </tr>
               </thead>
               <tbody>
-                {section.violations.slice(0, 100).map((v) => (
+                {rows.map((v) => (
                   <ViolationRow key={`${v.sourceDataset}-${v.sourceId}`} v={v} />
                 ))}
               </tbody>

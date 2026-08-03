@@ -11,7 +11,8 @@
     "test:live": "vitest run --config vitest.live.config.mts",
     "typecheck": "tsc --noEmit",
     "report": "tsx scripts/report.ts",
-    "screenshots": "tsx scripts/screenshots.ts"
+    "screenshots": "tsx scripts/screenshots.ts",
+    "check:pdf-font": "tsx scripts/check-pdf-font.tsx"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.5.1",
