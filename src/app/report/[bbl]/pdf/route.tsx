@@ -1,5 +1,5 @@
 import { renderToBuffer } from "@react-pdf/renderer";
-import { generateReport } from "@/lib/nyc/report";
+import { getCachedReport, withProperty } from "@/lib/nyc/report";
 import { getProperty } from "@/lib/nyc/property";
 import { normalizeBbl } from "@/lib/nyc/bbl";
 import { ReportDocument } from "@/lib/pdf/ReportDocument";
@@ -30,8 +30,11 @@ export async function GET(
   }
 
   try {
-    const property = await getProperty(bbl).catch(() => null);
-    const report = await generateReport(bbl, { property: property ?? undefined });
+    const [property, cachedReport] = await Promise.all([
+      getProperty(bbl).catch(() => null),
+      getCachedReport(bbl),
+    ]);
+    const report = withProperty(cachedReport, property);
 
     // Must run before the document is rendered, not at import time: registering
     // from module scope races with how the route is bundled, and a missed
@@ -39,7 +42,7 @@ export async function GET(
     registerPdfFonts();
     const buffer = await renderToBuffer(<ReportDocument report={report} />);
 
-    const slug = (property?.address ?? bbl)
+    const slug = (report.property.address ?? bbl)
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");

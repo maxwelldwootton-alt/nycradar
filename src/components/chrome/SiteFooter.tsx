@@ -25,6 +25,12 @@ export function SiteFooter() {
               Search a property
             </Link>
             <Link
+              href="/guides"
+              className={`rounded-md motion-safe:transition-colors hover:text-ink ${focusRing}`}
+            >
+              Guides
+            </Link>
+            <Link
               href="/login"
               className={`rounded-md motion-safe:transition-colors hover:text-ink ${focusRing}`}
             >
