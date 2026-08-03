@@ -13,10 +13,18 @@ export function LoginForm({ next }: { next: string }) {
     setState("sending");
     setMessage(null);
 
+    // Must match a URL on Supabase's Redirect URLs allowlist exactly, or
+    // Supabase silently discards it and falls back to the project's Site URL
+    // instead — which is how a magic link ends up pointing at localhost in
+    // production. window.location.origin is right for local dev but wrong on
+    // any host that isn't the canonical one (preview deployments, a future
+    // custom domain), so the canonical site URL takes priority.
+    const base = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
+
     const { error } = await supabaseBrowser().auth.signInWithOtp({
       email: email.trim(),
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        emailRedirectTo: `${base}/auth/callback?next=${encodeURIComponent(next)}`,
       },
     });
 

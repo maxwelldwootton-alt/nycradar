@@ -47,6 +47,19 @@ See `.env.example`. `SUPABASE_SERVICE_ROLE_KEY` is server-only — never prefix 
 
 `SOCRATA_APP_TOKEN` is optional but strongly recommended in production; anonymous SODA requests are throttled aggressively.
 
+`NEXT_PUBLIC_SITE_URL` is load-bearing for magic-link auth, not just Stripe redirects and share links — see below.
+
+### Auth configuration
+
+Magic-link sign-in requires **both** of these to be set correctly in the Supabase dashboard, under Authentication → URL Configuration, per environment:
+
+- **Site URL** — the fallback Supabase uses whenever a `redirectTo` isn't recognized
+- **Redirect URLs** — an allowlist; anything not on it is silently discarded
+
+If a deployment's URL isn't on the allowlist, sign-in doesn't error — it silently redirects to whatever **Site URL** happens to be set to, which defaults to `http://localhost:3000`. This is easy to hit on a fresh environment or a new preview domain and looks identical to a broken app. `LoginForm.tsx` sends `NEXT_PUBLIC_SITE_URL` as the redirect precisely so it matches a stable, allowlisted value rather than whatever host the browser happened to load from.
+
+Also worth knowing: Supabase's built-in email sender is rate-limited to a handful of messages per hour and is not meant for production. Configure a real SMTP provider (Resend, Postmark, etc.) under Authentication → Emails before real users sign in.
+
 ### Database
 
 Migrations in `supabase/migrations/` are already applied to the hosted project. For a fresh environment:
@@ -84,9 +97,14 @@ Worth knowing: `1 John Street, Brooklyn` (BBL `3000017501`) is the canonical reg
 
 ## Status
 
-MVP built. Not yet verified end to end:
+MVP built and deployed to `https://nycradar.vercel.app` (Vercel, connected to `main`).
+
+**Verified live:** homepage, address search (Supabase-backed, including the condo-billing-lot case), report generation against live NYC Open Data, the anonymous paywall/teaser, and PDF-export gating (402 when not entitled).
+
+**Not yet verified:**
 
 - **Stripe flows** — need test keys
-- **Auth, search, share links** — need network access to the Supabase host, which is outside the build environment's egress allowlist
+- **Magic-link auth end to end** — the redirect misconfiguration that sent links to `localhost` is fixed (see Auth configuration above), but a full click-through hasn't completed yet
 - **Phase 0 validation gate** — the PRD's willingness-to-pay check is still open
 - **Disclaimer language** — needs the legal review called for in PRD §12 before public launch
+- **Deployment protection** — Vercel's SSO gate is currently on, so the site isn't publicly reachable yet; intentional until the above are closer to done
