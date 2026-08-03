@@ -1,4 +1,5 @@
 import { LoginForm } from "@/components/LoginForm";
+import { Notice } from "@/components/ui/Notice";
 
 export const metadata = { title: "Sign in · ViolationRadar" };
 
@@ -35,22 +36,17 @@ export default async function LoginPage({
   const message = error ? (ERROR_MESSAGES[error] ?? FALLBACK_ERROR) : null;
 
   return (
-    <main className="mx-auto w-full max-w-md px-6 py-20">
-      <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
-        Sign in
-      </h1>
-      <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+    <main id="main" className="mx-auto w-full max-w-md px-6 py-20">
+      <h1 className="text-2xl font-semibold tracking-tight text-ink">Sign in</h1>
+      <p className="mt-2 text-sm text-ink-body">
         We&apos;ll email you a sign-in link. No password to remember, and no card
         required for your free monthly report.
       </p>
 
       {message && (
-        <p
-          role="status"
-          className="mt-5 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200"
-        >
+        <Notice tone="caution" role="status" className="mt-5">
           {message}
-        </p>
+        </Notice>
       )}
 
       <div className="mt-6">

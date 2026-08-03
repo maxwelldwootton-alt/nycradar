@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/supabase/session";
 import { supabaseService, hasServiceRole } from "@/lib/supabase/server";
 import { SearchBox } from "@/components/SearchBox";
+import { Badge } from "@/components/ui/Badge";
+import { buttonClass, cardClass, focusRingInset } from "@/components/ui/styles";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Dashboard · ViolationRadar" };
@@ -55,45 +57,43 @@ export default async function DashboardPage() {
   );
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-6 py-12">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <main id="main" className="mx-auto w-full max-w-4xl px-6 py-12">
+      <div
+        className={cardClass({
+          className: "flex flex-wrap items-center justify-between gap-4 p-5",
+        })}
+      >
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
-            Dashboard
-          </h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          <h1 className="text-2xl font-semibold tracking-tight text-ink">Dashboard</h1>
+          <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-ink-body">
             {user.email}
-            {" · "}
             {subscribed ? (
               <>
-                Unlimited lookups
-                {account?.current_period_end &&
-                  ` · renews ${new Date(account.current_period_end).toLocaleDateString("en-US")}`}
+                <Badge tone="accent">Unlimited lookups</Badge>
+                {account?.current_period_end && (
+                  <span className="text-ink-muted">
+                    renews{" "}
+                    {new Date(account.current_period_end).toLocaleDateString("en-US")}
+                  </span>
+                )}
               </>
             ) : (
-              <>
-                Free tier · {freeRemaining} lookup{freeRemaining === 1 ? "" : "s"}{" "}
-                remaining this period
-              </>
+              <Badge tone="accent">
+                Free tier · {freeRemaining} lookup{freeRemaining === 1 ? "" : "s"} left
+              </Badge>
             )}
           </p>
         </div>
 
         {subscribed ? (
           <form action="/api/billing/portal" method="post">
-            <button
-              type="submit"
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
-            >
+            <button type="submit" className={buttonClass({ variant: "outline" })}>
               Manage billing
             </button>
           </form>
         ) : (
           <form action="/api/checkout/subscription" method="post">
-            <button
-              type="submit"
-              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900"
-            >
+            <button type="submit" className={buttonClass({ variant: "accent" })}>
               Upgrade — $199/mo
             </button>
           </form>
@@ -105,30 +105,28 @@ export default async function DashboardPage() {
       </div>
 
       <section className="mt-12">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-          Recent lookups
-        </h2>
+        <h2 className="text-lg font-semibold tracking-tight text-ink">Recent lookups</h2>
         {lookups.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+          <p className="mt-2 text-sm text-ink-muted">
             Nothing yet. Search an address above to run your first report.
           </p>
         ) : (
-          <ul className="mt-3 divide-y divide-slate-200 rounded-lg border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
+          <ul className="mt-3 divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
             {lookups.map((l) => (
               <li key={l.id}>
                 <Link
                   href={`/report/${l.bbl}`}
-                  className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  className={`flex items-center justify-between gap-4 px-4 py-3.5 motion-safe:transition-colors hover:bg-sunken ${focusRingInset}`}
                 >
-                  <span>
-                    <span className="block font-medium text-slate-900 dark:text-slate-100">
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium text-ink">
                       {l.address ?? `BBL ${l.bbl}`}
                     </span>
-                    <span className="block text-sm text-slate-500 dark:text-slate-400">
-                      BBL {l.bbl}
+                    <span className="block font-mono text-sm text-ink-muted">
+                      {l.bbl}
                     </span>
                   </span>
-                  <span className="shrink-0 text-sm text-slate-500 dark:text-slate-400">
+                  <span className="shrink-0 text-sm tabular-nums text-ink-muted">
                     {new Date(l.created_at).toLocaleDateString("en-US")}
                   </span>
                 </Link>

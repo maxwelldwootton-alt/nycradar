@@ -8,6 +8,7 @@ import { ReportView } from "@/components/ReportView";
 import { ReportTeaser } from "@/components/ReportTeaser";
 import { ReportActions } from "@/components/ReportActions";
 import { recordLookup, resolveAccess } from "@/lib/auth/entitlement";
+import { buttonClass } from "@/components/ui/styles";
 
 // Reports hit four live city APIs; nothing here is statically renderable.
 export const dynamic = "force-dynamic";
@@ -52,11 +53,8 @@ export default async function ReportPage({
   }
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-6 py-10">
-      <Link
-        href="/"
-        className="text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-      >
+    <main id="main" className="mx-auto w-full max-w-4xl px-6 py-10">
+      <Link href="/" className={buttonClass({ variant: "ghost", size: "sm" })}>
         ← New search
       </Link>
 
