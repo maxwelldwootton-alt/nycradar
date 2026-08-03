@@ -25,22 +25,30 @@ export async function GET(request: Request) {
   // Confirm Signup template as `signup`. Trust the template and default to the
   // common case.
   const type = (url.searchParams.get("type") ?? "email") as EmailOtpType;
+  // Present only while the email templates still use `{{ .ConfirmationURL }}`.
+  const code = url.searchParams.get("code");
   const next = safeNextPath(url.searchParams.get("next"));
 
-  if (!tokenHash) {
+  if (!tokenHash && !code) {
     return loginRedirect(url.origin, next, "missing_token");
   }
 
   const supabase = await supabaseSession();
-  const { data, error } = await supabase.auth.verifyOtp({
-    token_hash: tokenHash,
-    type,
-  });
+
+  // Accepting both shapes keeps the code change and the dashboard template
+  // change order-independent. Sign-in now points here, but an un-updated
+  // template still appends `?code=`; without this fallback, deploying before
+  // editing the templates would break sign-in outright rather than leaving it
+  // on the older, less robust path.
+  const { data, error } = tokenHash
+    ? await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
+    : await supabase.auth.exchangeCodeForSession(code!);
 
   if (error || !data.user?.email) {
     // Logged because a silently-swallowed error here previously left no trace
     // of why a sign-in failed.
     console.error("magic link verification failed", {
+      method: tokenHash ? "token_hash" : "pkce_code",
       code: error?.code,
       status: error?.status,
       message: error?.message,

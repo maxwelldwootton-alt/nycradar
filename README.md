@@ -69,7 +69,7 @@ That means the email templates must point at `/auth/confirm` and pass a token ha
 
 `{{ .RedirectTo }}` already carries the `?next=…` the app set, so appending with `&` preserves the destination the user was heading to.
 
-`/auth/callback` still handles the PKCE `?code=` flow, because links minted before this switch stay valid for a while. It can be removed once none are in flight.
+`/auth/confirm` also accepts a PKCE `?code=`, so the code deploy and the template edit are order-independent: an un-updated template still signs users in via the older path rather than breaking outright. `/auth/callback` likewise stays, because links minted before this switch remain valid for a while. Both fallbacks can go once no old links are in flight.
 
 Also worth knowing: Supabase's built-in email sender is rate-limited to a handful of messages per hour and is not meant for production. Configure a real SMTP provider (Resend, Postmark, etc.) under Authentication → Emails before real users sign in.
 
