@@ -21,10 +21,14 @@ export function LoginForm({ next }: { next: string }) {
     // custom domain), so the canonical site URL takes priority.
     const base = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
 
+    // Points at /auth/confirm (token hash), not /auth/callback (PKCE): the
+    // email templates append `&token_hash=…&type=…` to this URL, and the token
+    // hash flow works when the link is opened in a different browser than the
+    // one that requested it. See src/app/auth/confirm/route.ts.
     const { error } = await supabaseBrowser().auth.signInWithOtp({
       email: email.trim(),
       options: {
-        emailRedirectTo: `${base}/auth/callback?next=${encodeURIComponent(next)}`,
+        emailRedirectTo: `${base}/auth/confirm?next=${encodeURIComponent(next)}`,
       },
     });
 

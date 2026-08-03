@@ -58,6 +58,19 @@ Magic-link sign-in requires **both** of these to be set correctly in the Supabas
 
 If a deployment's URL isn't on the allowlist, sign-in doesn't error — it silently redirects to whatever **Site URL** happens to be set to, which defaults to `http://localhost:3000`. This is easy to hit on a fresh environment or a new preview domain and looks identical to a broken app. `LoginForm.tsx` sends `NEXT_PUBLIC_SITE_URL` as the redirect precisely so it matches a stable, allowlisted value rather than whatever host the browser happened to load from.
 
+#### Email templates are part of the auth contract
+
+Sign-in uses the **token hash** flow, not PKCE, so the emailed link works when opened in a different browser from the one that requested it — iOS Mail's in-app browser, or a link forwarded to a desktop. PKCE cannot: its code verifier is a cookie belonging to the requesting browser, so the exchange fails client-side without ever reaching Supabase.
+
+That means the email templates must point at `/auth/confirm` and pass a token hash. Under Authentication → Email Templates:
+
+- **Magic Link** — `<a href="{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email">Sign in</a>`
+- **Confirm signup** — same, but `type=signup` (a first-time email uses this template, not Magic Link, and the wrong `type` fails verification)
+
+`{{ .RedirectTo }}` already carries the `?next=…` the app set, so appending with `&` preserves the destination the user was heading to.
+
+`/auth/confirm` also accepts a PKCE `?code=`, so the code deploy and the template edit are order-independent: an un-updated template still signs users in via the older path rather than breaking outright. `/auth/callback` likewise stays, because links minted before this switch remain valid for a while. Both fallbacks can go once no old links are in flight.
+
 Also worth knowing: Supabase's built-in email sender is rate-limited to a handful of messages per hour and is not meant for production. Configure a real SMTP provider (Resend, Postmark, etc.) under Authentication → Emails before real users sign in.
 
 ### Database
