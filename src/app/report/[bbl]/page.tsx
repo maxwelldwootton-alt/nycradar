@@ -47,9 +47,23 @@ export default async function ReportPage({
     resolveAccess(bbl),
   ]);
 
-  if (access.canViewFullReport) {
-    // Must happen exactly once per full view — this is what enforces FR4.
-    await recordLookup({ bbl, address: property?.address ?? null, decision: access });
+  let canViewFullReport = access.canViewFullReport;
+  let reason = access.reason;
+
+  if (canViewFullReport) {
+    // Must happen exactly once per full view — this is what enforces FR4. For
+    // the free tier this is also the claim itself: a false return means a
+    // concurrent request for another property just spent the last free
+    // lookup, so this view must not render as full after all.
+    const claimed = await recordLookup({
+      bbl,
+      address: property?.address ?? null,
+      decision: access,
+    });
+    if (!claimed) {
+      canViewFullReport = false;
+      reason = "You have used your free lookup for this 30-day period.";
+    }
   }
 
   return (
@@ -59,7 +73,7 @@ export default async function ReportPage({
       </Link>
 
       <div className="mt-6">
-        {access.canViewFullReport ? (
+        {canViewFullReport ? (
           <>
             <ReportView report={report} />
             <ReportActions bbl={bbl} />
@@ -67,7 +81,7 @@ export default async function ReportPage({
         ) : (
           <ReportTeaser
             report={report}
-            reason={access.reason}
+            reason={reason}
             signedIn={Boolean(access.email)}
           />
         )}

@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:live": "vitest run --config vitest.live.config.mts",
+    "test:integration": "vitest run --config vitest.integration.config.mts",
     "typecheck": "tsc --noEmit",
     "report": "tsx scripts/report.ts",
     "screenshots": "tsx scripts/screenshots.ts"
