@@ -5,6 +5,7 @@ import { generateReport } from "@/lib/nyc/report";
 import { getProperty } from "@/lib/nyc/property";
 import { normalizeBbl } from "@/lib/nyc/bbl";
 import { ReportView } from "@/components/ReportView";
+import { ReportActions } from "@/components/ReportActions";
 
 // Reports hit four live city APIs; nothing here is statically renderable.
 export const dynamic = "force-dynamic";
@@ -51,6 +52,7 @@ export default async function ReportPage({
       <div className="mt-6">
         <ReportView report={report} />
       </div>
+      <ReportActions bbl={bbl} />
     </main>
   );
 }
