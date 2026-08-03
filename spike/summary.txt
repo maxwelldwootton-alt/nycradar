@@ -1,0 +1,38 @@
+Test lots resolved:            27
+
+Lots returning >=1 record per source     BBL only  ->  BBL+BIN recovery
+  DOB      25/27 ( 92.6%)   ->    27/27 (100.0%)
+  HPD      27/27 (100.0%)   ->    27/27 (100.0%)
+  ECB      25/27 ( 92.6%)   ->    25/27 ( 92.6%)
+  OATH     27/27 (100.0%)   ->    27/27 (100.0%)
+
+  DOB+HPD+ECB joined:   23/27 ( 85.2%)   ->   25/27 ( 92.6%)
+  All four joined:      23/27 ( 85.2%)   ->   25/27 ( 92.6%)
+  Data in >=1 source:   27/27 (100.0%)
+
+Condo billing lots (lot>=7501) in set: 7
+  ...of which BBL-only found DOB rows:  5/7
+Lots needing BIN recovery:            2
+  2022687501 345 ST ANN'S AVENUE        DOB: +8 rows under ['2022680027']
+  3000017501 1 JOHN STREET              DOB: +14 rows under ['3000010002']
+
+Address-string fallback join (scored against known-true BBL):
+  HPD resolved correct BBL:  21/27 (77.8%)
+  DOB resolved correct BBL:  19/27 (70.4%)
+  Ambiguous (>1 BBL back):   6/27 (22.2%)
+
+Lots spanning multiple BINs:   14/27 (51.9%)
+Per-property fetch time:       min 2.5s  median 3.8s  max 6.1s
+Total SODA calls:              166
+
+OATH tickets matched, by issuing agency:
+    1841  DEPT. OF BUILDINGS
+    1194  ?
+    1066  MISCELLANEOUS AGENCIES
+     740  FIRE DEPARTMENT OF NYC
+     587  DOS - ENFORCEMENT AGENTS
+     420  SANITATION OTHERS
+     304  ASBESTOS CONTROL PROGRAM
+     261  DEP - BUREAU OF ENV. COMPLIANC
+     202  PCS - DOHMH
+     176  CSTDL AGY
