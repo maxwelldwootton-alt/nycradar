@@ -1,7 +1,10 @@
 import { LoginForm } from "@/components/LoginForm";
 import { Notice } from "@/components/ui/Notice";
 
-export const metadata = { title: "Sign in · ViolationRadar" };
+export const metadata = {
+  title: "Sign in · ViolationRadar",
+  alternates: { canonical: "/login" },
+};
 
 /**
  * Plain-language explanations for the ways a sign-in link fails.

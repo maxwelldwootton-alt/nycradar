@@ -7,7 +7,10 @@ import { Badge } from "@/components/ui/Badge";
 import { buttonClass, cardClass, focusRingInset } from "@/components/ui/styles";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Dashboard · ViolationRadar" };
+export const metadata = {
+  title: "Dashboard · ViolationRadar",
+  alternates: { canonical: "/dashboard" },
+};
 
 const ACTIVE = new Set(["active", "trialing", "past_due"]);
 

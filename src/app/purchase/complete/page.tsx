@@ -4,7 +4,10 @@ import { supabaseService, hasServiceRole } from "@/lib/supabase/server";
 import { buttonClass, cardClass } from "@/components/ui/styles";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Purchase complete · ViolationRadar" };
+export const metadata = {
+  title: "Purchase complete · ViolationRadar",
+  alternates: { canonical: "/purchase/complete" },
+};
 
 /**
  * Post-purchase landing for the one-time $49 tier.
