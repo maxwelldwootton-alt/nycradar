@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/react";
 import { SiteHeader } from "@/components/chrome/SiteHeader";
 import { SiteFooter } from "@/components/chrome/SiteFooter";
 import "./globals.css";
@@ -23,6 +24,9 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: "ViolationRadar — NYC property violation reports",
   description: DESCRIPTION,
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     type: "website",
     siteName: "ViolationRadar",
@@ -34,6 +38,12 @@ export const metadata: Metadata = {
     title: "ViolationRadar — NYC property violation reports",
     description: DESCRIPTION,
   },
+  // Set via NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION once a real Search Console
+  // token exists; omitted (rather than a placeholder) when unset so no
+  // bogus verification tag ships.
+  verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
+    : undefined,
 };
 
 export default function RootLayout({
@@ -60,6 +70,7 @@ export default function RootLayout({
         <SiteHeader />
         <div className="flex-1">{children}</div>
         <SiteFooter />
+        <Analytics />
       </body>
     </html>
   );

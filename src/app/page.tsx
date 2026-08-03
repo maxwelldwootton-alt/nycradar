@@ -1,6 +1,17 @@
 import { SearchBox } from "@/components/SearchBox";
 import { cardClass } from "@/components/ui/styles";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://nycradar.vercel.app";
+
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "ViolationRadar",
+  url: SITE_URL,
+  description:
+    "Aggregated DOB, HPD and ECB/OATH violation records for any NYC property — including outstanding penalties and docketed judgments.",
+};
+
 /** Inline rather than an icon dependency — three glyphs don't justify a package. */
 const ICONS = {
   layers: (
@@ -33,6 +44,10 @@ const FEATURES = [
 export default function Home() {
   return (
     <main id="main" className="mx-auto w-full max-w-5xl px-6 pt-16 pb-20 sm:pt-24">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+      />
       <p className="text-xs font-semibold tracking-[0.14em] text-accent uppercase">
         Pre-closing due diligence
       </p>
