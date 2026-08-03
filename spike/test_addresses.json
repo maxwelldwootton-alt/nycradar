@@ -1,0 +1,284 @@
+[
+  {
+    "bbl": "1000050010",
+    "stratum": "ordinary/elevator rental",
+    "bldgclass": "D5",
+    "unitsres": "1320",
+    "address": "115 BROAD STREET",
+    "zip": "10004",
+    "owner": "25 WATER OWNER, LLC",
+    "borough": "MANHATTAN"
+  },
+  {
+    "bbl": "1000077501",
+    "stratum": "ordinary/condo",
+    "bldgclass": "RM",
+    "unitsres": "42",
+    "address": "1 COENTIES SLIP",
+    "zip": "10004",
+    "owner": "66 PEARL STREET LLC",
+    "borough": "MANHATTAN"
+  },
+  {
+    "bbl": "1000530006",
+    "stratum": "ordinary/small multifamily / walkup",
+    "bldgclass": "C7",
+    "unitsres": "16",
+    "address": "109 WASHINGTON STREET",
+    "zip": "10006",
+    "owner": "109 WASHINGTON STREET L.L.C.",
+    "borough": "MANHATTAN"
+  },
+  {
+    "bbl": "1017440001",
+    "stratum": "high_violation",
+    "hpd_open_hint": 1324,
+    "address": "700 ESPLANADE GDNS PLAZA",
+    "zip": "10039",
+    "bldgclass": "D4",
+    "unitsres": "584",
+    "owner": "ESPLANADE GARDENS INC.",
+    "borough": "MANHATTAN"
+  },
+  {
+    "bbl": "1020160050",
+    "stratum": "high_violation",
+    "hpd_open_hint": 2258,
+    "address": "2541 ADAM C POWELL BLVD",
+    "zip": "10039",
+    "bldgclass": "D4",
+    "unitsres": "1225",
+    "owner": "ESPLANADE GARDENS INC.",
+    "borough": "MANHATTAN"
+  },
+  {
+    "bbl": "2022600010",
+    "stratum": "ordinary/elevator rental",
+    "bldgclass": "D7",
+    "unitsres": "448",
+    "address": "138 BRUCKNER BOULEVARD",
+    "zip": "10454",
+    "owner": "138 BRUCKNER GROUND LESSOR, LLC",
+    "borough": "BRONX"
+  },
+  {
+    "bbl": "2022600017",
+    "stratum": "ordinary/small multifamily / walkup",
+    "bldgclass": "C1",
+    "unitsres": "15",
+    "address": "144 BRUCKNER BOULEVARD",
+    "zip": "10454",
+    "owner": "POINT BRUCKNER HOLDINGS LLC",
+    "borough": "BRONX"
+  },
+  {
+    "bbl": "2022687501",
+    "stratum": "ordinary/condo",
+    "bldgclass": "RM",
+    "unitsres": "177",
+    "address": "345 ST ANN'S AVENUE",
+    "zip": "10454",
+    "owner": "TCB MOTT HAVEN HOUSING DEVELOPMENT FUND  CORPORATIO",
+    "borough": "BRONX"
+  },
+  {
+    "bbl": "2026100012",
+    "stratum": "high_violation",
+    "hpd_open_hint": 1266,
+    "address": "530 EAST 169 STREET",
+    "zip": "10456",
+    "bldgclass": "D6",
+    "unitsres": "321",
+    "owner": "FORDHAM FULTON REALTY, CORP.",
+    "borough": "BRONX"
+  },
+  {
+    "bbl": "2039437501",
+    "stratum": "high_violation",
+    "hpd_open_hint": 1626,
+    "address": "14 METROPOLITAN OVAL",
+    "zip": "10462",
+    "bldgclass": "R4",
+    "unitsres": "3378",
+    "owner": "PARKCHESTER SOUTH CONDOMINIUM ASSOC",
+    "borough": "BRONX"
+  },
+  {
+    "bbl": "2039447501",
+    "stratum": "high_violation",
+    "hpd_open_hint": 2737,
+    "address": "9 METROPOLITAN OVAL",
+    "zip": "10462",
+    "bldgclass": "R4",
+    "unitsres": "3857",
+    "owner": "PPC RESIDENTIAL, LLC",
+    "borough": "BRONX"
+  },
+  {
+    "bbl": "2051350051",
+    "stratum": "high_violation",
+    "hpd_open_hint": 1555,
+    "address": "120 ERSKINE PLACE",
+    "zip": "10475",
+    "bldgclass": "D4",
+    "unitsres": "4458",
+    "owner": "UNAVAILABLE OWNER",
+    "borough": "BRONX"
+  },
+  {
+    "bbl": "2051410120",
+    "stratum": "high_violation",
+    "hpd_open_hint": 5225,
+    "address": "2049 BARTOW AVENUE",
+    "zip": "10475",
+    "bldgclass": "D4",
+    "unitsres": "10914",
+    "owner": "RIVERBAY CORPORATION",
+    "borough": "BRONX"
+  },
+  {
+    "bbl": "3000017501",
+    "stratum": "ordinary/condo",
+    "bldgclass": "RM",
+    "unitsres": "42",
+    "address": "1 JOHN STREET",
+    "zip": "11201",
+    "owner": "UNAVAILABLE OWNER",
+    "borough": "BROOKLYN"
+  },
+  {
+    "bbl": "3000180001",
+    "stratum": "ordinary/elevator rental",
+    "bldgclass": "D7",
+    "unitsres": "64",
+    "address": "135 PLYMOUTH STREET",
+    "zip": "11201",
+    "owner": "DON BEN R CO",
+    "borough": "BROOKLYN"
+  },
+  {
+    "bbl": "3000430024",
+    "stratum": "ordinary/small multifamily / walkup",
+    "bldgclass": "C1",
+    "unitsres": "8",
+    "address": "312 WATER STREET",
+    "zip": "11201",
+    "owner": "VINEGAR PHOENIX INC",
+    "borough": "BROOKLYN"
+  },
+  {
+    "bbl": "3012120065",
+    "stratum": "high_violation",
+    "hpd_open_hint": 1229,
+    "address": "1055 BERGEN STREET",
+    "zip": "11216",
+    "bldgclass": "C6",
+    "unitsres": "16",
+    "owner": "1055 BERGEN STREET HOUSING DEVELOPMENT FUND CORP",
+    "borough": "BROOKLYN"
+  },
+  {
+    "bbl": "3013020001",
+    "stratum": "high_violation",
+    "hpd_open_hint": 1376,
+    "address": "1720 BEDFORD AVENUE",
+    "zip": "11225",
+    "bldgclass": "D1",
+    "unitsres": "1321",
+    "owner": "FIELDBRIDGE ASSOCIATES",
+    "borough": "BROOKLYN"
+  },
+  {
+    "bbl": "3042710001",
+    "stratum": "high_violation",
+    "hpd_open_hint": 5564,
+    "address": "LINCOLN AVENUE",
+    "zip": "11208",
+    "bldgclass": "U7",
+    "unitsres": "0",
+    "owner": "LINDEN PLAZA HOUSING CO., INC.",
+    "borough": "BROOKLYN"
+  },
+  {
+    "bbl": "3045950215",
+    "stratum": "high_violation",
+    "hpd_open_hint": 1755,
+    "address": "1022 EAST 93 STREET",
+    "zip": "11212",
+    "bldgclass": "D7",
+    "unitsres": "438",
+    "owner": "RUTLAND ROAD HOUSES, INC.",
+    "borough": "BROOKLYN"
+  },
+  {
+    "bbl": "4000067501",
+    "stratum": "ordinary/condo",
+    "bldgclass": "RM",
+    "unitsres": "306",
+    "address": "1-55 BORDEN AVENUE",
+    "zip": "11101",
+    "owner": "UNAVAILABLE OWNER",
+    "borough": "QUEENS"
+  },
+  {
+    "bbl": "4000110001",
+    "stratum": "ordinary/elevator rental",
+    "bldgclass": "D6",
+    "unitsres": "812",
+    "address": "2-21 MALT DRIVE",
+    "zip": "11101",
+    "owner": "BUD NORTH LLC",
+    "borough": "QUEENS"
+  },
+  {
+    "bbl": "4000260003",
+    "stratum": "ordinary/small multifamily / walkup",
+    "bldgclass": "C2",
+    "unitsres": "6",
+    "address": "45-42 VERNON BOULEVARD",
+    "zip": "11101",
+    "owner": "4542 VERNON OWNER LLC",
+    "borough": "QUEENS"
+  },
+  {
+    "bbl": "5000010216",
+    "stratum": "ordinary/elevator rental",
+    "bldgclass": "D0",
+    "unitsres": "128",
+    "address": "10 BAY STREET LANDING",
+    "zip": "10301",
+    "owner": "BSL ONE OWNERS CORP",
+    "borough": "STATEN IS"
+  },
+  {
+    "bbl": "5000017501",
+    "stratum": "ordinary/condo",
+    "bldgclass": "R4",
+    "unitsres": "131",
+    "address": "80 BAY STREET LANDING",
+    "zip": "10301",
+    "owner": "UNAVAILABLE OWNER",
+    "borough": "STATEN IS"
+  },
+  {
+    "bbl": "5000050035",
+    "stratum": "ordinary/small multifamily / walkup",
+    "bldgclass": "C5",
+    "unitsres": "8",
+    "address": "17 CENTRAL AVENUE",
+    "zip": "10301",
+    "owner": "17-19 SLOSSON TERRACE CORP",
+    "borough": "STATEN IS"
+  },
+  {
+    "bbl": "5029220150",
+    "stratum": "high_violation",
+    "hpd_open_hint": 1090,
+    "address": "225 PARK HILL AVENUE",
+    "zip": "10304",
+    "bldgclass": "D1",
+    "unitsres": "305",
+    "owner": "ST. GEORGE PLAZA HOUSING DEVELOPMENT",
+    "borough": "STATEN IS"
+  }
+]

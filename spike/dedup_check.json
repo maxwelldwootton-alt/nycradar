@@ -1,0 +1,55 @@
+{
+  "per_lot": [
+    {
+      "bbl": "1000050010",
+      "address": "115 BROAD STREET",
+      "ecb": 27,
+      "oath": 222,
+      "overlap": 24,
+      "pct": 88.9
+    },
+    {
+      "bbl": "1000077501",
+      "address": "1 COENTIES SLIP",
+      "ecb": 14,
+      "oath": 213,
+      "overlap": 12,
+      "pct": 85.7
+    },
+    {
+      "bbl": "1000530006",
+      "address": "109 WASHINGTON STREET",
+      "ecb": 45,
+      "oath": 74,
+      "overlap": 45,
+      "pct": 100.0
+    },
+    {
+      "bbl": "1017440001",
+      "address": "700 ESPLANADE GDNS PLAZA",
+      "ecb": 97,
+      "oath": 182,
+      "overlap": 78,
+      "pct": 80.4
+    },
+    {
+      "bbl": "1020160050",
+      "address": "2541 ADAM C POWELL BLVD",
+      "ecb": 241,
+      "oath": 442,
+      "overlap": 192,
+      "pct": 79.7
+    },
+    {
+      "bbl": "2022600010",
+      "address": "138 BRUCKNER BOULEVARD",
+      "ecb": 31,
+      "oath": 162,
+      "overlap": 25,
+      "pct": 80.6
+    }
+  ],
+  "ecb_total": 455,
+  "ecb_also_in_oath": 376,
+  "overall_pct": 82.6
+}
