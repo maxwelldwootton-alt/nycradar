@@ -23,15 +23,15 @@ import { severityTone, type Tone } from "@/components/ui/severity";
  * the two cannot drift silently. The PDF is a print artefact and therefore
  * tracks the *light* scheme only — there is no dark paper.
  *
- * Typeface is @react-pdf's built-in Helvetica rather than the Geist the site
- * uses. `Font.register` needs a TTF by URL or filesystem path at render time,
- * and this renders inside a serverless route that already calls four city APIs
- * under `maxDuration = 120`; a per-render font fetch buys a typeface match at
- * the cost of a new failure mode. The consistency the product needs is in the
- * figures, colours and wording, which this file does match.
+ * Typeface is Geist, matching the site. It is read off disk rather than
+ * fetched — see src/lib/pdf/fonts.ts for why, and for the tracing config that
+ * keeps the files present in the deployed bundle.
  */
 const styles = StyleSheet.create({
-  page: { paddingTop: 42, paddingBottom: 70, paddingHorizontal: 42, fontSize: 9, color: "#0f172a" }, // --ink
+  page: {
+    paddingTop: 42, paddingBottom: 70, paddingHorizontal: 42,
+    fontFamily: "Geist", fontSize: 9, color: "#0f172a", // --ink
+  },
   brandBar: { height: 2, backgroundColor: "#1d4ed8", marginBottom: 10 }, // --accent
   brand: { fontSize: 8, fontWeight: 700, color: "#1e40af", letterSpacing: 0.6, marginBottom: 3 }, // --accent-hover, for print headroom
   h1: { fontSize: 16, fontWeight: 700, marginBottom: 3 },

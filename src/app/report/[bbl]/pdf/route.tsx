@@ -3,6 +3,7 @@ import { generateReport } from "@/lib/nyc/report";
 import { getProperty } from "@/lib/nyc/property";
 import { normalizeBbl } from "@/lib/nyc/bbl";
 import { ReportDocument } from "@/lib/pdf/ReportDocument";
+import { registerPdfFonts } from "@/lib/pdf/fonts";
 import { resolveAccess } from "@/lib/auth/entitlement";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +32,11 @@ export async function GET(
   try {
     const property = await getProperty(bbl).catch(() => null);
     const report = await generateReport(bbl, { property: property ?? undefined });
+
+    // Must run before the document is rendered, not at import time: registering
+    // from module scope races with how the route is bundled, and a missed
+    // registration falls back to Helvetica silently rather than failing.
+    registerPdfFonts();
     const buffer = await renderToBuffer(<ReportDocument report={report} />);
 
     const slug = (property?.address ?? bbl)
