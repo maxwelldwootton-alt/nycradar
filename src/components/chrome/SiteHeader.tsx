@@ -30,6 +30,12 @@ export function SiteHeader() {
             Search
           </Link>
           <Link
+            href="/guides"
+            className={`rounded-md px-3 py-1.5 text-ink-body motion-safe:transition-colors hover:bg-sunken hover:text-ink ${focusRing}`}
+          >
+            Guides
+          </Link>
+          <Link
             href="/login"
             className={`rounded-md px-3 py-1.5 font-medium text-accent motion-safe:transition-colors hover:bg-accent-soft ${focusRing}`}
           >

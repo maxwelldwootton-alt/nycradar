@@ -18,6 +18,7 @@
  * See spike/FINDINGS.md for the measurements behind each.
  */
 
+import { unstable_cache } from "next/cache";
 import { cleanBin, isCondoBillingLot, splitBbl, BORO_CODE_TO_LABEL } from "./bbl";
 import { datasetUpdatedAt } from "./socrata";
 import * as dob from "./sources/dob";
@@ -292,6 +293,38 @@ export async function generateReport(
     generatedAt: new Date().toISOString(),
     warnings,
   };
+}
+
+/**
+ * Cached front door for read-only surfaces (the report page, its PDF export,
+ * and the public property-teaser page all want the same data).
+ *
+ * The 4 live Socrata calls in `generateReport` are the dominant cost on every
+ * one of those routes, and unlike entitlement — which is per-visitor and must
+ * stay dynamic — the violation data itself is the same for everyone looking
+ * at a given BBL within the hour. Caching it here, rather than caching the
+ * page, keeps personalized rendering (who gets the teaser vs. the full view)
+ * fully dynamic while still cutting repeat-request latency.
+ *
+ * Deliberately keyed on `bbl` alone, with no PLUTO property data merged in
+ * here — `generateReport`'s violation-fetching never depends on `opts.property`
+ * (it only decorates the result), and pulling `./property` into this module
+ * would drag in its `server-only` guard, which breaks the pure-function tests
+ * in tests/dedupe.test.ts. Callers merge property data in via `withProperty`.
+ */
+export const getCachedReport = unstable_cache(
+  (bbl: string): Promise<ViolationReport> => generateReport(bbl),
+  ["violation-report"],
+  { revalidate: 3600 },
+);
+
+/** Merges PLUTO property metadata into an already-generated report. */
+export function withProperty(
+  report: ViolationReport,
+  property: Partial<PropertyRef> | null,
+): ViolationReport {
+  if (!property) return report;
+  return { ...report, property: { ...report.property, ...property } };
 }
 
 export { cleanBin };

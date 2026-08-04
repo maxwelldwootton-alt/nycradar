@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { generateReport } from "@/lib/nyc/report";
+import { getCachedReport, withProperty } from "@/lib/nyc/report";
 import { getProperty } from "@/lib/nyc/property";
 import { normalizeBbl } from "@/lib/nyc/bbl";
 import { ReportView } from "@/components/ReportView";
@@ -38,14 +38,12 @@ export default async function ReportPage({
   const bbl = normalizeBbl(raw);
   if (!bbl) notFound();
 
-  // Property metadata is a nicety — a valid BBL with no PLUTO row should still
-  // produce a report, since violations can outlive a lot merge.
-  const property = await getProperty(bbl).catch(() => null);
-
-  const [report, access] = await Promise.all([
-    generateReport(bbl, { property: property ?? undefined }),
+  const [property, cachedReport, access] = await Promise.all([
+    getProperty(bbl).catch(() => null),
+    getCachedReport(bbl),
     resolveAccess(bbl),
   ]);
+  const report = withProperty(cachedReport, property);
 
   let canViewFullReport = access.canViewFullReport;
   let reason = access.reason;
