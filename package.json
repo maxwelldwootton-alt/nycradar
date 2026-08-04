@@ -12,6 +12,7 @@
     "test:integration": "vitest run --config vitest.integration.config.mts",
     "typecheck": "tsc --noEmit",
     "report": "tsx scripts/report.ts",
+    "seo:refresh": "tsx scripts/refresh-seo-summaries.ts",
     "screenshots": "tsx scripts/screenshots.ts",
     "check:pdf-font": "tsx scripts/check-pdf-font.tsx"
   },

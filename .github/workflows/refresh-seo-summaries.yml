@@ -1,0 +1,58 @@
+name: Refresh SEO summaries
+
+# Rebuilds `property_seo_summaries`, the table behind the public
+# /p/{borough}/{slug} landing pages.
+#
+# Runs here rather than as a Vercel cron because a full citywide sweep reads
+# several million rows across four Socrata datasets and takes far longer than
+# a serverless function is allowed to live.
+
+on:
+  schedule:
+    # 07:20 UTC — after the city's overnight dataset publishes, and off the
+    # hour so it isn't queued behind everyone else's :00 cron.
+    - cron: "20 7 * * *"
+  workflow_dispatch:
+    inputs:
+      borough:
+        description: "Limit to one borough (1-5). Leave blank for all."
+        required: false
+        type: string
+      dry_run:
+        description: "Compute and report without writing"
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  # Two overlapping sweeps would fight over the same rows and double the
+  # Socrata load for no benefit.
+  group: refresh-seo-summaries
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    # A full sweep is long; the default 6h cap would mask a hang.
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Refresh summaries
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Optional, but anonymous Socrata traffic is throttled hard.
+          SOCRATA_APP_TOKEN: ${{ secrets.SOCRATA_APP_TOKEN }}
+        run: |
+          npm run seo:refresh -- \
+            ${{ inputs.borough && format('--borough {0}', inputs.borough) || '' }} \
+            ${{ inputs.dry_run && '--dry-run' || '' }}

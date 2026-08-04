@@ -54,6 +54,54 @@ function appToken(): string | undefined {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
+ * Request throttle.
+ *
+ * A report page issues ~5 calls and then stops, so this was never needed for
+ * the interactive path. The bulk SEO refresh is the first caller to make
+ * sustained requests — tens of thousands in a run — and anonymous Socrata
+ * traffic is throttled aggressively. The defaults are wide enough that the
+ * report path behaves exactly as before; the bulk script narrows them.
+ */
+let maxConcurrency = 8;
+let minIntervalMs = 0;
+
+let inFlight = 0;
+let lastStartedAt = 0;
+const waiters: (() => void)[] = [];
+
+export function configureSocrataThrottle(opts: {
+  maxConcurrency?: number;
+  minIntervalMs?: number;
+}): void {
+  if (opts.maxConcurrency !== undefined) {
+    maxConcurrency = Math.max(1, opts.maxConcurrency);
+  }
+  if (opts.minIntervalMs !== undefined) {
+    minIntervalMs = Math.max(0, opts.minIntervalMs);
+  }
+}
+
+async function acquireSlot(): Promise<void> {
+  if (inFlight >= maxConcurrency) {
+    await new Promise<void>((resolve) => waiters.push(resolve));
+  }
+  inFlight++;
+
+  if (minIntervalMs > 0) {
+    // Space out request *starts*, so a long-running request doesn't cause a
+    // burst the moment it lands.
+    const wait = lastStartedAt + minIntervalMs - Date.now();
+    if (wait > 0) await sleep(wait);
+    lastStartedAt = Date.now();
+  }
+}
+
+function releaseSlot(): void {
+  inFlight--;
+  waiters.shift()?.();
+}
+
+/**
  * Query a dataset. Retries transient failures with exponential backoff;
  * 400/404 are treated as caller errors and thrown immediately, since retrying
  * a malformed SoQL query only wastes the rate limit.
@@ -80,21 +128,30 @@ export async function soda<T = Record<string, unknown>>(
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const res = await fetch(url, {
-        headers,
-        signal: AbortSignal.timeout(opts.timeoutMs ?? DEFAULT_TIMEOUT_MS),
-        cache: "no-store",
-      });
-      if (res.status === 400 || res.status === 404) {
-        const body = await res.text();
-        throw new SocrataError(
-          `Bad SODA query on ${id}: ${body.slice(0, 300)}`,
-          res.status,
-          id,
-        );
+      // Per attempt, not per call: a retry is another request against the same
+      // rate limit and has to queue behind the throttle like any other. The
+      // slot is held until the body is consumed, not just until headers
+      // arrive — on a 50k-row page the download is most of the work.
+      await acquireSlot();
+      try {
+        const res = await fetch(url, {
+          headers,
+          signal: AbortSignal.timeout(opts.timeoutMs ?? DEFAULT_TIMEOUT_MS),
+          cache: "no-store",
+        });
+        if (res.status === 400 || res.status === 404) {
+          const body = await res.text();
+          throw new SocrataError(
+            `Bad SODA query on ${id}: ${body.slice(0, 300)}`,
+            res.status,
+            id,
+          );
+        }
+        if (!res.ok) throw new SocrataError(`SODA ${res.status} on ${id}`, res.status, id);
+        return (await res.json()) as T[];
+      } finally {
+        releaseSlot();
       }
-      if (!res.ok) throw new SocrataError(`SODA ${res.status} on ${id}`, res.status, id);
-      return (await res.json()) as T[];
     } catch (err) {
       if (err instanceof SocrataError && (err.status === 400 || err.status === 404)) {
         throw err;
@@ -139,6 +196,38 @@ export async function sodaAll<T = Record<string, unknown>>(
     if (page.length < pageSize) return { rows, truncated: false };
   }
   return { rows, truncated: true };
+}
+
+/**
+ * Page through a dataset, yielding one page at a time.
+ *
+ * `sodaAll` accumulates every row and stops at `maxRows` (50k by default),
+ * which is right for one property's report but wrong for a citywide sweep:
+ * the SEO refresh reads millions of rows and needs to fold each page into a
+ * running tally and then drop it. Yielding pages keeps peak memory at one
+ * page regardless of dataset size.
+ *
+ * Ordering matters for correctness here. Socrata's offset paging is only
+ * stable under an explicit `$order`; without one, rows can repeat or be
+ * skipped across pages, which would silently corrupt the counts.
+ */
+export async function* sodaPages<T = Record<string, unknown>>(
+  dataset: DatasetKey,
+  query: Omit<SocrataQuery, "$limit" | "$offset"> & { $order: string },
+  opts: { pageSize?: number; maxPages?: number } = {},
+): AsyncGenerator<T[], void, undefined> {
+  const pageSize = opts.pageSize ?? 50_000;
+  const maxPages = opts.maxPages ?? Infinity;
+
+  for (let page = 0; page < maxPages; page++) {
+    const rows = await soda<T>(dataset, {
+      ...query,
+      $limit: pageSize,
+      $offset: page * pageSize,
+    });
+    if (rows.length > 0) yield rows;
+    if (rows.length < pageSize) return;
+  }
 }
 
 /** Exact row count via SoQL aggregate — far cheaper than fetching rows. */
