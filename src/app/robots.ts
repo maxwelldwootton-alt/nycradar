@@ -17,6 +17,8 @@ export default function robots(): MetadataRoute.Robots {
         "/auth",
       ],
     },
-    sitemap: `${SITE_URL}/sitemap.xml`,
+    // The index, not /sitemap.xml: `generateSitemaps` splits the property
+    // pages across /sitemap/{id}.xml and leaves /sitemap.xml unrouted.
+    sitemap: `${SITE_URL}/sitemap-index.xml`,
   };
 }
