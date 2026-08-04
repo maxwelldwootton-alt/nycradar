@@ -5,6 +5,10 @@ import { supabaseService, hasServiceRole } from "@/lib/supabase/server";
 import { generateReport } from "@/lib/nyc/report";
 import { getProperty } from "@/lib/nyc/property";
 import { createShareLink } from "@/lib/nyc/share";
+import { sendEmail } from "@/lib/email/client";
+import { purchasedReportEmail } from "@/lib/email/templates";
+import { captureError } from "@/lib/observability/capture";
+import { reportShareUrl } from "@/lib/urls";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -40,7 +44,7 @@ export async function POST(request: Request) {
       process.env.STRIPE_WEBHOOK_SECRET,
     );
   } catch (err) {
-    console.error("stripe signature verification failed", err);
+    captureError(err, { tag: "stripe_webhook", stage: "signature_verification" });
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
@@ -60,7 +64,7 @@ export async function POST(request: Request) {
   } catch (err) {
     // Returning 500 makes Stripe retry, which is what we want for a transient
     // failure — the handlers are written to be idempotent.
-    console.error(`webhook handler failed for ${event.type}`, err);
+    captureError(err, { tag: "stripe_webhook", stage: "handler", event: event.type });
     return NextResponse.json({ error: "Handler failed" }, { status: 500 });
   }
 
@@ -86,20 +90,40 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   // One-time report purchase (FR5a).
   const bbl = session.metadata?.bbl;
   if (!bbl) {
-    console.error("single-report checkout completed without a bbl", session.id);
+    captureError(new Error("single-report checkout completed without a bbl"), {
+      tag: "purchase",
+      stage: "checkout_completed",
+      session: session.id,
+    });
     return;
   }
 
   const email =
     session.customer_details?.email ?? session.customer_email ?? null;
 
+  // Stripe retries on any non-2xx, and this handler is expensive and has
+  // externally visible effects: without this check a retry would regenerate the
+  // report, mint a *second* share token, and send the buyer a duplicate
+  // delivery email. Keying idempotency on the session id makes the retry a
+  // no-op rather than a repeat.
+  const { data: existing } = await db
+    .from("single_report_purchases")
+    .select("status")
+    .eq("stripe_session_id", session.id)
+    .maybeSingle();
+  if (existing?.status === "paid") return;
+
   // Generate and snapshot the report so the buyer gets a durable link they can
   // open without an account — the whole point of this tier.
   let reportId: string | null = null;
+  let shareToken: string | null = null;
+  let address: string | null = null;
   try {
     const property = await getProperty(bbl).catch(() => null);
+    address = property?.address ?? null;
     const report = await generateReport(bbl, { property: property ?? undefined });
     const { token } = await createShareLink(report);
+    shareToken = token;
 
     const { data } = await db
       .from("reports")
@@ -110,7 +134,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   } catch (err) {
     // Payment succeeded; never fail the webhook over report generation. The
     // purchase row is still written and the report can be regenerated.
-    console.error("could not pre-generate purchased report", err);
+    captureError(err, { tag: "purchase", stage: "pre_generate_report", bbl });
   }
 
   await db.from("single_report_purchases").upsert(
@@ -126,6 +150,45 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     },
     { onConflict: "stripe_session_id" },
   );
+
+  // Deliver the link by email — *after* the purchase row is durable, so a
+  // failure here can never leave a sent email with no record behind it.
+  //
+  // This is not a nicety on this tier, it is the delivery mechanism. The buyer
+  // has no account by design, so without this message their only route back to
+  // what they paid for is the success-redirect tab, and closing it loses the
+  // purchase. `/purchase/recover` is the backstop when this fails.
+  if (!email) {
+    captureError(new Error("Purchase completed with no email on the Stripe session"), {
+      tag: "purchase",
+      stage: "delivery_email",
+      bbl,
+      session: session.id,
+    });
+    return;
+  }
+
+  if (!shareToken) return; // Already captured above; nothing deliverable yet.
+
+  const message = purchasedReportEmail({
+    address: address ?? `BBL ${bbl}`,
+    bbl,
+    reportUrl: reportShareUrl(shareToken),
+  });
+  const sent = await sendEmail({ to: email, tag: "purchase_delivery", ...message });
+
+  if (!sent.ok) {
+    // Loud on purpose. A buyer who paid and received nothing is the failure
+    // here that becomes a chargeback rather than a support email. Note this
+    // still returns 200 to Stripe: the money and the record are both correct,
+    // and a retry would not re-attempt delivery now that the row says paid.
+    captureError(new Error(`Purchase delivery email failed: ${sent.reason}`), {
+      tag: "purchase",
+      stage: "delivery_email",
+      bbl,
+      session: session.id,
+    });
+  }
 }
 
 async function handleSubscriptionChange(subscription: Stripe.Subscription) {

@@ -10,6 +10,8 @@ Next.js + Supabase. Reports are generated on demand from NYC Open Data; address 
 |---|---|
 | [`spike/FINDINGS.md`](spike/FINDINGS.md) | Data feasibility spike — **read this first**, it explains why the code is shaped the way it is |
 | [`docs/PLAN.md`](docs/PLAN.md) | Build plan, data model, ETL rules |
+| [`docs/LAUNCH-CHECKLIST.md`](docs/LAUNCH-CHECKLIST.md) | What has to be true before this is public |
+| [`docs/LEGAL-REVIEW.md`](docs/LEGAL-REVIEW.md) | Packet for the disclaimer/ToS review — the longest external lead time |
 
 ## The five rules
 
@@ -49,6 +51,8 @@ See `.env.example`. `SUPABASE_SERVICE_ROLE_KEY` is server-only — never prefix 
 
 `NEXT_PUBLIC_SITE_URL` is load-bearing for magic-link auth, not just Stripe redirects and share links — see below.
 
+`RESEND_API_KEY` and `EMAIL_FROM` are **required in production**. See "Email" below.
+
 ### Auth configuration
 
 Magic-link sign-in requires **both** of these to be set correctly in the Supabase dashboard, under Authentication → URL Configuration, per environment:
@@ -72,6 +76,36 @@ That means the email templates must point at `/auth/confirm` and pass a token ha
 `/auth/confirm` also accepts a PKCE `?code=`, so the code deploy and the template edit are order-independent: an un-updated template still signs users in via the older path rather than breaking outright. `/auth/callback` likewise stays, because links minted before this switch remain valid for a while. Both fallbacks can go once no old links are in flight.
 
 Also worth knowing: Supabase's built-in email sender is rate-limited to a handful of messages per hour and is not meant for production. Configure a real SMTP provider (Resend, Postmark, etc.) under Authentication → Emails before real users sign in.
+
+### Email
+
+Two separate senders, and both have to work:
+
+- **Supabase** sends magic links, configured in the dashboard (above).
+- **The app** sends purchased reports, via `src/lib/email/client.ts` and the Resend HTTP API, configured with `RESEND_API_KEY` and `EMAIL_FROM`.
+
+The second is not a nicety. The $49 tier deliberately creates no account, so the emailed link is the *only* durable way that buyer reaches what they paid for. With mail unconfigured, checkout still succeeds and delivers nothing.
+
+`/purchase/recover` is the backstop: enter the buying email, get the links re-sent. It answers identically whether or not the address has purchases — anything else would make it an oracle for who is a customer, on a product whose customers are mid-transaction on identifiable properties.
+
+`EMAIL_FROM` must be on a domain verified with the provider (SPF/DKIM/DMARC), or the mail is accepted and then filed as spam.
+
+### Rate limiting
+
+`/property/[bbl]` answers for any of NYC's ~858k tax lots and each uncached render fans out to roughly six SODA calls, so an enumerating crawler can spend the app's entire Socrata quota on pages nobody asked for — and a throttled app serves degraded reports to paying customers.
+
+`src/lib/rate-limit.ts` guards address search and uncached public report renders, counting in Postgres rather than in memory because the quota is shared across every Vercel instance. Entitled users are never throttled.
+
+Two things to know about it:
+
+- **It fails open.** If Supabase is unreachable the limiter allows the request. Its job is protecting a quota under abnormal load, not being a security control, and letting its own outage take down search would trade a cost problem for an availability one.
+- **A limiter that has silently stopped working looks exactly like one that is working.** Check that `rate_limits` is accumulating rows rather than inferring it from behaviour.
+
+### Errors
+
+`captureError` in `src/lib/observability/capture.ts` writes one structured JSON line per error to stderr, always — that is what a log drain consumes, and it needs no configuration. Set `ERROR_WEBHOOK_URL` as well and errors are also POSTed somewhere a human will see them; the payload works as-is with a Slack incoming webhook. Repeats of the same failure are collapsed for a minute so one failing dependency can't flood the channel.
+
+Call sites use `captureError` rather than `console.error` so that swapping in a vendor SDK later is one file rather than a sweep through every catch block.
 
 ### Database
 
@@ -98,6 +132,11 @@ npm run typecheck    # tsc --noEmit
 npm run test         # unit tests (offline)
 npm run test:live    # integration tests against live city APIs
 npm run report -- 3000017501   # CLI report for a BBL
+
+# Pre-launch accuracy measurement (docs/LAUNCH-CHECKLIST.md §3).
+# Both need SUPABASE_SERVICE_ROLE_KEY, and in practice SOCRATA_APP_TOKEN.
+npm run accuracy:join   -- --sample 1000 --out reports/join.json
+npm run accuracy:search -- --sample 400  --out reports/search.json
 npm run screenshots            # visual sweep, light + dark, mobile + desktop
 ```
 

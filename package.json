@@ -12,6 +12,8 @@
     "test:integration": "vitest run --config vitest.integration.config.mts",
     "typecheck": "tsc --noEmit",
     "report": "tsx scripts/report.ts",
+    "accuracy:join": "NODE_OPTIONS=--conditions=react-server tsx scripts/accuracy-join.ts",
+    "accuracy:search": "NODE_OPTIONS=--conditions=react-server tsx scripts/accuracy-search.ts",
     "screenshots": "tsx scripts/screenshots.ts",
     "check:pdf-font": "tsx scripts/check-pdf-font.tsx"
   },
