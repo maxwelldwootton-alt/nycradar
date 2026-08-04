@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { searchProperties } from "@/lib/nyc/property";
+import { guardAddressSearch } from "@/lib/rate-limit";
+import { captureError } from "@/lib/observability/capture";
 
 const querySchema = z.object({
   q: z.string().min(1).max(120),
@@ -20,6 +22,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Invalid search query" }, { status: 400 });
   }
 
+  // The PLUTO index is the one asset here that is genuinely ours rather than
+  // the city's, and this endpoint is an unauthenticated way to page through it.
+  if (!(await guardAddressSearch(request.headers))) {
+    return NextResponse.json(
+      { error: "Too many searches. Try again shortly." },
+      { status: 429, headers: { "Retry-After": "60" } },
+    );
+  }
+
   try {
     const results = await searchProperties(parsed.data.q, {
       borough: parsed.data.borough ?? null,
@@ -27,7 +38,7 @@ export async function GET(request: Request) {
     });
     return NextResponse.json({ results });
   } catch (err) {
-    console.error("search failed", err);
+    captureError(err, { tag: "search", stage: "searchProperties" });
     return NextResponse.json({ error: "Search is unavailable" }, { status: 502 });
   }
 }

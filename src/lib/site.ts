@@ -14,3 +14,16 @@
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") ??
   "https://www.nycviolationhub.com";
+
+/**
+ * The public, no-login URL for a shared or purchased report snapshot.
+ *
+ * Built from `SITE_URL` rather than from the request origin for a reason that
+ * outlives the request: this link is emailed. A preview deployment that sent a
+ * purchase receipt pointing at its own hostname would produce a link that dies
+ * with the deployment, and the buyer of a $49 report has no account to fall
+ * back to.
+ */
+export function reportShareUrl(token: string): string {
+  return `${SITE_URL}/r/${token}`;
+}

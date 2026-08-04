@@ -11,6 +11,13 @@ export default defineConfig({
     testTimeout: 30_000,
   },
   resolve: {
-    alias: { "@": resolve(__dirname, "src") },
+    alias: {
+      "@": resolve(__dirname, "src"),
+      // `server-only` throws unconditionally outside Next's bundler, which
+      // resolves it to a no-op via the "react-server" export condition. Vite
+      // doesn't set that condition, so point it at the no-op build directly —
+      // same reasoning as vitest.integration.config.mts.
+      "server-only": resolve(__dirname, "node_modules/server-only/empty.js"),
+    },
   },
 });

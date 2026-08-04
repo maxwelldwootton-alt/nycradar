@@ -40,6 +40,15 @@ export function SiteFooter() {
             >
               Guides
             </Link>
+            {/* Reachable from every page on purpose: a single-report buyer has
+                no account to sign into, so if their delivery email is lost this
+                link is the only way back to what they paid for. */}
+            <Link
+              href="/purchase/recover"
+              className={`rounded-md motion-safe:transition-colors hover:text-ink ${focusRing}`}
+            >
+              Find my report
+            </Link>
             <Link
               href="/login"
               className={`rounded-md motion-safe:transition-colors hover:text-ink ${focusRing}`}

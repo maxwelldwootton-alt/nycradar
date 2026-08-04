@@ -77,8 +77,9 @@ export default async function PurchaseCompletePage({
       ) : (
         <>
           <p className="mt-3 text-ink-body">
-            Thanks. Your full report is available at the link below. Bookmark it —
-            it stays accessible without an account.
+            Thanks. Your full report is available at the link below, and
+            we&apos;ve emailed the same link to you. Both stay accessible without
+            an account.
           </p>
           {shareToken ? (
             <Link
@@ -97,6 +98,20 @@ export default async function PurchaseCompletePage({
           ) : null}
         </>
       )}
+
+      {/* The escape hatch, shown while the buyer is still on the page rather
+          than only after they've lost the email. This tier has no account to
+          sign back into, so a missed delivery otherwise ends in a refund. */}
+      <p className="mt-6 text-sm text-ink-muted">
+        Didn&apos;t get the email?{" "}
+        <Link
+          href="/purchase/recover"
+          className="text-accent underline underline-offset-2"
+        >
+          Re-send it
+        </Link>
+        .
+      </p>
 
       {/* Post-purchase upsell (Flow B1 step 4). */}
       <section className={cardClass({ className: "mt-10 p-5" })}>

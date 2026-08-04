@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -9,6 +10,8 @@ import { ReportView } from "@/components/ReportView";
 import { ReportTeaser } from "@/components/ReportTeaser";
 import { ReportActions } from "@/components/ReportActions";
 import { recordLookup, resolveAccess } from "@/lib/auth/entitlement";
+import { guardPublicReportRender } from "@/lib/rate-limit";
+import { TemporarilyUnavailable } from "@/components/TemporarilyUnavailable";
 import { buttonClass } from "@/components/ui/styles";
 
 // Reports hit four live city APIs; nothing here is statically renderable.
@@ -39,11 +42,28 @@ export default async function ReportPage({
   const bbl = normalizeBbl(raw);
   if (!bbl) notFound();
 
-  const [property, cachedReport, access] = await Promise.all([
+  // Entitlement is resolved *before* the report is fetched rather than
+  // alongside it, so the limiter can run while declining to fetch is still an
+  // option. `robots.txt` disallows this route, but a scraper enumerating BBLs
+  // here would otherwise trigger six SODA calls per lot — a teaser is rendered
+  // from a full report, so an anonymous view costs exactly what a paid one
+  // does. This is the only surface where that's true: the indexable
+  // `/p/{borough}/{slug}` pages read the nightly summary table instead.
+  //
+  // The cost is one serialized database round trip for signed-in users, which
+  // is the cheaper half of this page by a wide margin.
+  const [property, access] = await Promise.all([
     getProperty(bbl).catch(() => null),
-    getCachedReport(bbl),
     resolveAccess(bbl),
   ]);
+
+  // Entitled users are never throttled — they have paid for this specific
+  // lookup, or are inside a subscription that promises unlimited ones.
+  if (!access.canViewFullReport && !(await guardPublicReportRender(await headers(), bbl))) {
+    return <TemporarilyUnavailable />;
+  }
+
+  const cachedReport = await getCachedReport(bbl);
   const report = withProperty(cachedReport, property);
 
   // Bookkeeping only — deferred, best-effort, and a no-op for incomplete
