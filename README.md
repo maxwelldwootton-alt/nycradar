@@ -11,6 +11,7 @@ Next.js + Supabase. Reports are generated on demand from NYC Open Data; address 
 | [`spike/FINDINGS.md`](spike/FINDINGS.md) | Data feasibility spike — **read this first**, it explains why the code is shaped the way it is |
 | [`docs/PLAN.md`](docs/PLAN.md) | Build plan, data model, ETL rules |
 | [`docs/LAUNCH-CHECKLIST.md`](docs/LAUNCH-CHECKLIST.md) | What has to be true before this is public |
+| [`docs/FEATURES.md`](docs/FEATURES.md) | Pre-launch feature candidates, with verified dataset IDs |
 | [`docs/LEGAL-REVIEW.md`](docs/LEGAL-REVIEW.md) | Packet for the disclaimer/ToS review — the longest external lead time |
 
 ## The five rules
