@@ -15,7 +15,7 @@ import {
   StyleSheet,
 } from "@react-pdf/renderer";
 import type { ViolationReport } from "@/lib/nyc/types";
-import { severityLabel } from "@/lib/nyc/classify";
+import { formatAgencyList, severityLabel } from "@/lib/nyc/classify";
 import { severityTone, type Tone } from "@/components/ui/severity";
 
 /**
@@ -48,6 +48,9 @@ const styles = StyleSheet.create({
     marginTop: 8, padding: 6, borderRadius: 3,
     // Neutral, matching the web report: blue now means "interactive" system-wide.
     backgroundColor: "#f1f5f9", color: "#475569", fontSize: 8, // --sunken / --ink-body
+  },
+  noticeCritical: {
+    backgroundColor: "#fee2e2", color: "#b91c1c", // --critical-soft / --critical
   },
   h2: {
     fontSize: 11, fontWeight: 700, marginTop: 18, marginBottom: 2,
@@ -163,6 +166,18 @@ export function ReportDocument({ report }: { report: ViolationReport }) {
             </Text>
           </View>
         </View>
+
+        {/* Same wording as the web report, at the same relative emphasis: a
+            PDF that omits the outage the page disclosed is a report that
+            asserts a clean building on the strength of data it never got. */}
+        {report.unavailableSources.length > 0 && (
+          <Text style={[styles.notice, styles.noticeCritical]}>
+            {formatAgencyList(report.unavailableSources)} data could not be
+            retrieved. The counts above exclude{" "}
+            {report.unavailableSources.length === 1 ? "it" : "them"} and
+            understate what this property may carry.
+          </Text>
+        )}
 
         {report.warnings.map((w) => (
           <Text key={w} style={styles.notice}>

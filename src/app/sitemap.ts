@@ -60,6 +60,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly" as const,
       priority: 0.6,
     })),
+    // Low priority but present: buyers and payment processors both expect to
+    // be able to find these, and an unlisted policy page reads as an absent one.
+    {
+      url: `${SITE_URL}/terms`,
+      changeFrequency: "yearly",
+      priority: 0.2,
+    },
+    {
+      url: `${SITE_URL}/privacy`,
+      changeFrequency: "yearly",
+      priority: 0.2,
+    },
     ...bbls.map((bbl) => ({
       url: `${SITE_URL}/property/${bbl}`,
       changeFrequency: "weekly" as const,
