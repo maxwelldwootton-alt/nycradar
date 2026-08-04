@@ -14,6 +14,7 @@
     "report": "tsx scripts/report.ts",
     "accuracy:join": "NODE_OPTIONS=--conditions=react-server tsx scripts/accuracy-join.ts",
     "accuracy:search": "NODE_OPTIONS=--conditions=react-server tsx scripts/accuracy-search.ts",
+    "seo:refresh": "tsx scripts/refresh-seo-summaries.ts",
     "screenshots": "tsx scripts/screenshots.ts",
     "check:pdf-font": "tsx scripts/check-pdf-font.tsx"
   },

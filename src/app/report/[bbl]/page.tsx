@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getCachedReport, withProperty } from "@/lib/nyc/report";
+import { persistReport } from "@/lib/nyc/persistence";
 import { getProperty } from "@/lib/nyc/property";
 import { normalizeBbl } from "@/lib/nyc/bbl";
 import { ReportView } from "@/components/ReportView";
@@ -42,10 +43,12 @@ export default async function ReportPage({
   if (!bbl) notFound();
 
   // Entitlement is resolved *before* the report is fetched rather than
-  // alongside it. `robots.txt` disallows this route, but a scraper enumerating
-  // BBLs here would otherwise trigger the same six SODA calls per lot that the
-  // limiter on `/property/[bbl]` exists to bound — teasers render from a full
-  // report, so an anonymous view is exactly as expensive as a paid one.
+  // alongside it, so the limiter can run while declining to fetch is still an
+  // option. `robots.txt` disallows this route, but a scraper enumerating BBLs
+  // here would otherwise trigger six SODA calls per lot — a teaser is rendered
+  // from a full report, so an anonymous view costs exactly what a paid one
+  // does. This is the only surface where that's true: the indexable
+  // `/p/{borough}/{slug}` pages read the nightly summary table instead.
   //
   // The cost is one serialized database round trip for signed-in users, which
   // is the cheaper half of this page by a wide margin.
@@ -62,6 +65,10 @@ export default async function ReportPage({
 
   const cachedReport = await getCachedReport(bbl);
   const report = withProperty(cachedReport, property);
+
+  // Bookkeeping only — deferred, best-effort, and a no-op for incomplete
+  // reports. Nothing on this page waits on it.
+  persistReport(report);
 
   let canViewFullReport = access.canViewFullReport;
   let reason = access.reason;

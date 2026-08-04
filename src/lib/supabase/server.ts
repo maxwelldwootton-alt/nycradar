@@ -56,3 +56,16 @@ export function supabaseService(): SupabaseClient {
 export function hasServiceRole(): boolean {
   return Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
 }
+
+/**
+ * True when the anon client can be constructed.
+ *
+ * Build-time code paths (`generateSitemaps`, static metadata) run wherever the
+ * build runs, which may not have Supabase env wired. Callers there check this
+ * and return empty rather than letting `requireEnv` fail the whole build.
+ */
+export function hasAnonConfig(): boolean {
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  );
+}

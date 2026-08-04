@@ -100,4 +100,10 @@ export interface ViolationReport {
   perSourceUpdatedAt: Record<string, string | null>;
   generatedAt: string;
   warnings: string[];
+  /**
+   * Agencies whose API did not answer. Empty is the normal case and means an
+   * empty section is a real "no violations found" rather than a gap — the
+   * distinction the report must never blur.
+   */
+  unavailableSources: Agency[];
 }

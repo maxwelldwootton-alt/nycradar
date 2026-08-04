@@ -8,7 +8,7 @@ import { createShareLink } from "@/lib/nyc/share";
 import { sendEmail } from "@/lib/email/client";
 import { purchasedReportEmail } from "@/lib/email/templates";
 import { captureError } from "@/lib/observability/capture";
-import { reportShareUrl } from "@/lib/urls";
+import { reportShareUrl } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;

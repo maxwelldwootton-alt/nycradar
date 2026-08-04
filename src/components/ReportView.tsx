@@ -1,5 +1,5 @@
 import type { AgencySection, NormalizedViolation, ViolationReport } from "@/lib/nyc/types";
-import { severityLabel } from "@/lib/nyc/classify";
+import { formatAgencyList, severityLabel } from "@/lib/nyc/classify";
 import { Disclaimer, formatDataAsOf } from "./Disclaimer";
 import { Badge } from "./ui/Badge";
 import { Notice } from "./ui/Notice";
@@ -221,6 +221,19 @@ export function ReportView({ report }: { report: ViolationReport }) {
           hint={summary.docketedJudgments > 0 ? "May attach as a lien" : undefined}
         />
       </div>
+
+      {/* Above the warnings and at a higher severity: everything else in that
+          list qualifies the numbers, this one says the numbers are incomplete. */}
+      {report.unavailableSources.length > 0 && (
+        <Notice tone="critical" role="alert" className="mt-5">
+          <strong className="font-semibold">
+            {formatAgencyList(report.unavailableSources)} data could not be
+            retrieved.
+          </strong>{" "}
+          The counts below exclude {report.unavailableSources.length === 1 ? "it" : "them"}{" "}
+          and understate what this property may carry. Reload in a few minutes.
+        </Notice>
+      )}
 
       {report.warnings.length > 0 && (
         <ul className="mt-5 space-y-2">

@@ -5,7 +5,7 @@ import { sendEmail } from "@/lib/email/client";
 import { recoveredReportsEmail } from "@/lib/email/templates";
 import { consumeRateLimit, clientIp } from "@/lib/rate-limit";
 import { captureError } from "@/lib/observability/capture";
-import { reportShareUrl, siteOrigin } from "@/lib/urls";
+import { reportShareUrl, SITE_URL } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   const form = await request.formData().catch(() => null);
   const parsed = schema.safeParse({ email: form?.get("email") });
 
-  const done = NextResponse.redirect(`${siteOrigin()}/purchase/recover?sent=1`, {
+  const done = NextResponse.redirect(`${SITE_URL}/purchase/recover?sent=1`, {
     status: 303,
   });
 

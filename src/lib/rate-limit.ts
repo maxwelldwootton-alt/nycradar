@@ -91,7 +91,15 @@ export async function guardAddressSearch(headers: Headers): Promise<boolean> {
 }
 
 /**
- * Public report renders — the Socrata-expensive path.
+ * Anonymous report renders — the Socrata-expensive path.
+ *
+ * The indexable `/p/{borough}/{slug}` landing pages read the nightly
+ * `property_seo_summaries` table and never touch Socrata, so crawl traffic is
+ * not what this guards. What remains is `/report/[bbl]`: an anonymous visitor
+ * gets a teaser, but a teaser is rendered *from a full report*, so an
+ * unentitled view costs exactly as much as a paid one. Nothing otherwise
+ * bounds how many distinct lots an anonymous caller can make us fetch, and a
+ * throttled app serves degraded reports to the people who paid.
  *
  * The cost being metered is **fetching a property we haven't fetched
  * recently**, not serving a page. Repeat views of the same BBL are already free

@@ -51,6 +51,8 @@ See `.env.example`. `SUPABASE_SERVICE_ROLE_KEY` is server-only — never prefix 
 
 `NEXT_PUBLIC_SITE_URL` is load-bearing for magic-link auth, not just Stripe redirects and share links — see below.
 
+It must be the origin that actually **serves**, not one that redirects to it. Production is `https://www.nycviolationhub.com`; the apex 308s to `www`. Pointing this at the apex makes every canonical tag, sitemap entry and og:image URL reference a redirect — crawlers discount those and most link unfurlers don't follow them. `src/lib/site.ts` is the single source for it, and its default is the real production host rather than a placeholder, because an unset variable otherwise fails silently and looks like working software.
+
 `RESEND_API_KEY` and `EMAIL_FROM` are **required in production**. See "Email" below.
 
 ### Auth configuration
@@ -61,6 +63,8 @@ Magic-link sign-in requires **both** of these to be set correctly in the Supabas
 - **Redirect URLs** — an allowlist; anything not on it is silently discarded
 
 If a deployment's URL isn't on the allowlist, sign-in doesn't error — it silently redirects to whatever **Site URL** happens to be set to, which defaults to `http://localhost:3000`. This is easy to hit on a fresh environment or a new preview domain and looks identical to a broken app. `LoginForm.tsx` sends `NEXT_PUBLIC_SITE_URL` as the redirect precisely so it matches a stable, allowlisted value rather than whatever host the browser happened to load from.
+
+Because of that, **Supabase's Site URL and `NEXT_PUBLIC_SITE_URL` must name the same origin**, down to the `www`. `https://nycviolationhub.com` and `https://www.nycviolationhub.com` are different entries as far as the allowlist is concerned, so changing one without the other reproduces exactly the silent-bounce failure above. Update Supabase first, then the environment variable.
 
 #### Email templates are part of the auth contract
 
@@ -92,9 +96,9 @@ The second is not a nicety. The $49 tier deliberately creates no account, so the
 
 ### Rate limiting
 
-`/property/[bbl]` answers for any of NYC's ~858k tax lots and each uncached render fans out to roughly six SODA calls, so an enumerating crawler can spend the app's entire Socrata quota on pages nobody asked for — and a throttled app serves degraded reports to paying customers.
+The indexable `/p/{borough}/{slug}` pages read the nightly summary table and never touch Socrata, so crawl traffic isn't the exposure. `/report/[bbl]` is: it answers for any of NYC's ~858k tax lots, each uncached render is roughly six SODA calls, and an anonymous visitor's teaser is rendered *from a full report* — so an unentitled view costs exactly what a paid one does. Someone enumerating BBLs there can spend the app's entire Socrata quota, and a throttled app serves degraded reports to paying customers.
 
-`src/lib/rate-limit.ts` guards address search and uncached public report renders, counting in Postgres rather than in memory because the quota is shared across every Vercel instance. Entitled users are never throttled.
+`src/lib/rate-limit.ts` guards address search, purchase recovery, and uncached anonymous report renders, counting in Postgres rather than in memory because the quota is shared across every Vercel instance. Entitled users are never throttled — they have paid for the lookup, or are inside a subscription that promises unlimited ones.
 
 Two things to know about it:
 
@@ -152,7 +156,7 @@ Worth knowing: `1 John Street, Brooklyn` (BBL `3000017501`) is the canonical reg
 
 ## Status
 
-MVP built and deployed to `https://nycradar.vercel.app` (Vercel, connected to `main`).
+MVP built and deployed to `https://www.nycviolationhub.com` (Vercel, connected to `main`).
 
 **Verified live:** homepage, address search (Supabase-backed, including the condo-billing-lot case), report generation against live NYC Open Data, the anonymous paywall/teaser, and PDF-export gating (402 when not entitled).
 

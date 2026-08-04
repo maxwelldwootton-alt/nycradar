@@ -1,12 +1,14 @@
 -- Rate limiting for the unauthenticated surfaces.
 --
 -- The problem this solves is a cost and availability one, not an abuse one.
--- `/property/[bbl]` renders for *any* of NYC's ~858k tax lots with no
--- `generateStaticParams`, and every uncached render fans out to roughly six
--- SODA calls against NYC Open Data. A crawler that discovers the URL shape, or
--- anyone enumerating BBLs, can therefore burn the app's entire Socrata quota
--- on pages nobody asked for — and once throttled, paying customers get
--- degraded reports.
+-- `/report/[bbl]` answers for *any* of NYC's ~858k tax lots, and every uncached
+-- render fans out to roughly six SODA calls against NYC Open Data. An
+-- anonymous visitor sees only a teaser there, but the teaser is rendered from a
+-- full report, so an unentitled view costs exactly what a paid one does.
+-- Anyone enumerating BBLs can therefore burn the app's entire Socrata quota on
+-- reports nobody asked for — and once throttled, paying customers get degraded
+-- reports. The same table backs the limits on address search and on
+-- purchase recovery.
 --
 -- Postgres rather than an in-memory counter because Vercel runs many isolated
 -- instances: a per-instance map would let the effective limit scale with

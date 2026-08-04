@@ -50,6 +50,10 @@ own progress.
       newest add rate limiting and the accuracy-sampling helper.
 - [ ] PLUTO loaded — `select ingest_pluto_page(0, 5000);` until it returns 0.
       Address search returns nothing without it.
+- [ ] **`npm run seo:refresh` has run at least once, and is scheduled.** The
+      public `/p/{borough}/{slug}` pages read only `property_seo_summaries`; an
+      empty table means every landing page 404s and the whole indexable surface
+      is missing. Unscheduled, it silently goes stale instead.
 
 ---
 
@@ -91,8 +95,11 @@ npm run accuracy:search -- --sample 400  --out reports/search.json
 
 Not unit-tested, because the failure modes are in the integrations.
 
-- [ ] **Anonymous → teaser.** Search an address, land on the teaser, confirm no
-      violation detail, balances, or judgment counts leak into the HTML.
+- [ ] **Anonymous → teaser.** Search an address, land on the teaser at
+      `/report/{bbl}`, confirm no violation detail, balances, or judgment counts
+      leak into the HTML.
+- [ ] **Indexable landing page.** `/p/{borough}/{slug}` renders from the nightly
+      summary, and `/property/{bbl}` 301s to it.
 - [ ] **Magic-link sign-in from a different browser than the one that
       requested it** — open the link on a phone after requesting on a desktop.
       This is the case PKCE cannot serve and the token-hash flow exists for.
@@ -119,9 +126,11 @@ Not unit-tested, because the failure modes are in the integrations.
       blocks — so a limiter that has quietly stopped working looks exactly like
       one that is working. Check the table, not the behaviour.
 - [ ] **The global render budget is sized for expected traffic.**
-      `guardPublicReportRender` allows 2000 uncached property renders per hour
-      across the whole site. That is a circuit breaker, not a throttle; if
-      launch traffic is expected to exceed it, raise it deliberately rather than
+      `guardPublicReportRender` allows 2000 uncached *anonymous* report renders
+      per hour across the whole site. It does not touch the `/p/` landing pages
+      (they read the nightly summary table, never Socrata) and never throttles
+      an entitled user. That is a circuit breaker, not a throttle; if launch
+      traffic is expected to exceed it, raise it deliberately rather than
       discovering it as an outage.
 - [ ] **No report surface can render without `data_as_of` and the disclaimer**
       (PLAN.md §8). Check the web report, the PDF, and a share link.

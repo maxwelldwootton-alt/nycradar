@@ -1,69 +1,97 @@
 import type { MetadataRoute } from "next";
 import { GUIDES } from "@/lib/guides";
-import { supabaseService, hasServiceRole } from "@/lib/supabase/server";
+import {
+  BOROUGH_SLUGS,
+  SITEMAP_CHUNK_SIZE,
+  listBoroughSlugs,
+  sitemapChunks,
+} from "@/lib/nyc/seo-summary";
+import { SITE_URL } from "@/lib/site";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://nycradar.vercel.app";
-
-// Sitemaps get crawled periodically, not per-visitor — cache to avoid a
-// Supabase round trip on every crawl.
-export const revalidate = 3600;
+// Sitemaps are crawled periodically, not per-visitor.
+export const revalidate = 86400;
 
 /**
- * BBLs people have actually looked up, most recent first.
+ * Emits `/sitemap/{id}.xml`. Id 0 is the static pages and the guides; every id
+ * after that is one chunk of one borough's property pages, per
+ * `sitemapChunks()`.
  *
- * `/property/[bbl]` pages exist for any of NYC's ~850K tax lots (see that
- * route's on-demand ISR comment), so pre-listing all of them here isn't
- * feasible or useful. Seeding the sitemap from real lookups instead gives
- * crawlers a growing, relevance-weighted entry point without a bulk-generation
- * step. Best-effort: an unconfigured Supabase service role or a query failure
- * just means fewer property URLs in the sitemap, not a broken build.
+ * The index tying these together is `/sitemap-index.xml` — Next does not
+ * generate one for `generateSitemaps`, and that index is what robots.txt
+ * points crawlers at.
  */
-async function recentPropertyBbls(limit = 500): Promise<string[]> {
-  if (!hasServiceRole()) return [];
-  try {
-    const { data, error } = await supabaseService()
-      .from("lookups")
-      .select("bbl")
-      .order("created_at", { ascending: false })
-      .limit(limit * 3);
-    if (error || !data) return [];
-
-    const seen = new Set<string>();
-    for (const row of data as { bbl: string }[]) {
-      seen.add(row.bbl);
-      if (seen.size >= limit) break;
-    }
-    return [...seen];
-  } catch {
-    return [];
-  }
+export async function generateSitemaps(): Promise<{ id: number }[]> {
+  const list = await sitemapChunks();
+  // Always at least the statics sitemap, even before the refresh has ever run.
+  return [{ id: 0 }, ...list.map((_, i) => ({ id: i + 1 }))];
 }
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const bbls = await recentPropertyBbls();
+export default async function sitemap({
+  id,
+}: {
+  // Next 16 hands this over as a Promise of the route segment — a *string* —
+  // even though the documented type is a plain number. Comparing the raw value
+  // against 0 silently matched nothing and emitted an empty sitemap, so it is
+  // awaited and parsed rather than trusted. `await` on a non-promise returns
+  // the value unchanged, so this holds either way.
+  id: Promise<string | number> | string | number;
+}): Promise<MetadataRoute.Sitemap> {
+  const index = parseInt(String(await id), 10);
+  if (!Number.isFinite(index)) return [];
 
-  return [
-    {
-      url: SITE_URL,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 1,
-    },
-    {
-      url: `${SITE_URL}/guides`,
-      changeFrequency: "monthly",
-      priority: 0.5,
-    },
-    ...GUIDES.map((guide) => ({
-      url: `${SITE_URL}/guides/${guide.slug}`,
-      lastModified: new Date(guide.updated),
-      changeFrequency: "monthly" as const,
-      priority: 0.6,
-    })),
-    ...bbls.map((bbl) => ({
-      url: `${SITE_URL}/property/${bbl}`,
-      changeFrequency: "weekly" as const,
-      priority: 0.4,
-    })),
-  ];
+  if (index === 0) {
+    return [
+      {
+        url: SITE_URL,
+        lastModified: new Date(),
+        changeFrequency: "weekly",
+        priority: 1,
+      },
+      {
+        url: `${SITE_URL}/guides`,
+        changeFrequency: "monthly",
+        priority: 0.5,
+      },
+      ...GUIDES.map((guide) => ({
+        url: `${SITE_URL}/guides/${guide.slug}`,
+        lastModified: new Date(guide.updated),
+        changeFrequency: "monthly" as const,
+        priority: 0.6,
+      })),
+      // Low priority but present: buyers and payment processors both expect to
+      // be able to find these, and an unlisted policy page reads as an absent one.
+      {
+        url: `${SITE_URL}/terms`,
+        changeFrequency: "yearly",
+        priority: 0.2,
+      },
+      {
+        url: `${SITE_URL}/privacy`,
+        changeFrequency: "yearly",
+        priority: 0.2,
+      },
+      ...BOROUGH_SLUGS.map((borough) => ({
+        url: `${SITE_URL}/p/${borough}`,
+        changeFrequency: "daily" as const,
+        priority: 0.7,
+      })),
+    ];
+  }
+
+  const chunk = (await sitemapChunks())[index - 1];
+  if (!chunk) return [];
+
+  // Property URLs are the slug pages now; the old `/property/{bbl}` seeding
+  // from the `lookups` table is gone with the route, which 301s to these.
+  const rows = await listBoroughSlugs(chunk.borough, {
+    limit: SITEMAP_CHUNK_SIZE,
+    offset: chunk.offset,
+  });
+
+  return rows.map((row) => ({
+    url: `${SITE_URL}/p/${chunk.borough}/${row.slug}`,
+    lastModified: new Date(row.computedAt),
+    changeFrequency: "weekly" as const,
+    priority: 0.4,
+  }));
 }

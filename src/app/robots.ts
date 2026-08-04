@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next";
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://nycradar.vercel.app";
+import { SITE_URL } from "@/lib/site";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -17,6 +16,8 @@ export default function robots(): MetadataRoute.Robots {
         "/auth",
       ],
     },
-    sitemap: `${SITE_URL}/sitemap.xml`,
+    // The index, not /sitemap.xml: `generateSitemaps` splits the property
+    // pages across /sitemap/{id}.xml and leaves /sitemap.xml unrouted.
+    sitemap: `${SITE_URL}/sitemap-index.xml`,
   };
 }

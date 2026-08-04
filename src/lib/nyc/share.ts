@@ -65,8 +65,14 @@ export async function getSharedReport(token: string): Promise<SharedReport | nul
   if (!data) return null;
   if (data.expires_at && new Date(data.expires_at) < new Date()) return null;
 
+  // Snapshots are frozen JSON, so any field added to `ViolationReport` after a
+  // link was created is simply absent from older rows — the cast alone would
+  // hand consumers an `undefined` where they expect an array. Backfill rather
+  // than 404 an otherwise-valid link.
+  const snapshot = data.snapshot as ViolationReport;
+
   return {
-    report: data.snapshot as ViolationReport,
+    report: { ...snapshot, unavailableSources: snapshot.unavailableSources ?? [] },
     createdAt: data.created_at as string,
   };
 }
