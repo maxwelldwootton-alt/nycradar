@@ -49,6 +49,8 @@ See `.env.example`. `SUPABASE_SERVICE_ROLE_KEY` is server-only — never prefix 
 
 `NEXT_PUBLIC_SITE_URL` is load-bearing for magic-link auth, not just Stripe redirects and share links — see below.
 
+It must be the origin that actually **serves**, not one that redirects to it. Production is `https://www.nycviolationhub.com`; the apex 308s to `www`. Pointing this at the apex makes every canonical tag, sitemap entry and og:image URL reference a redirect — crawlers discount those and most link unfurlers don't follow them. `src/lib/site.ts` is the single source for it, and its default is the real production host rather than a placeholder, because an unset variable otherwise fails silently and looks like working software.
+
 ### Auth configuration
 
 Magic-link sign-in requires **both** of these to be set correctly in the Supabase dashboard, under Authentication → URL Configuration, per environment:
@@ -57,6 +59,8 @@ Magic-link sign-in requires **both** of these to be set correctly in the Supabas
 - **Redirect URLs** — an allowlist; anything not on it is silently discarded
 
 If a deployment's URL isn't on the allowlist, sign-in doesn't error — it silently redirects to whatever **Site URL** happens to be set to, which defaults to `http://localhost:3000`. This is easy to hit on a fresh environment or a new preview domain and looks identical to a broken app. `LoginForm.tsx` sends `NEXT_PUBLIC_SITE_URL` as the redirect precisely so it matches a stable, allowlisted value rather than whatever host the browser happened to load from.
+
+Because of that, **Supabase's Site URL and `NEXT_PUBLIC_SITE_URL` must name the same origin**, down to the `www`. `https://nycviolationhub.com` and `https://www.nycviolationhub.com` are different entries as far as the allowlist is concerned, so changing one without the other reproduces exactly the silent-bounce failure above. Update Supabase first, then the environment variable.
 
 #### Email templates are part of the auth contract
 
@@ -113,7 +117,7 @@ Worth knowing: `1 John Street, Brooklyn` (BBL `3000017501`) is the canonical reg
 
 ## Status
 
-MVP built and deployed to `https://nycradar.vercel.app` (Vercel, connected to `main`).
+MVP built and deployed to `https://www.nycviolationhub.com` (Vercel, connected to `main`).
 
 **Verified live:** homepage, address search (Supabase-backed, including the condo-billing-lot case), report generation against live NYC Open Data, the anonymous paywall/teaser, and PDF-export gating (402 when not entitled).
 

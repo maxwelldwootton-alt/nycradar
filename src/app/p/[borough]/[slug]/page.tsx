@@ -10,6 +10,7 @@ import { GUIDES } from "@/lib/guides";
 import { StatCard } from "@/components/ui/StatCard";
 import { buttonClass, cardClass } from "@/components/ui/styles";
 import { Disclaimer, formatDataAsOf } from "@/components/Disclaimer";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Public, indexable violation summary for one property.
@@ -25,8 +26,6 @@ import { Disclaimer, formatDataAsOf } from "@/components/Disclaimer";
 
 // Content changes only when the nightly refresh runs.
 export const revalidate = 86400;
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://nycradar.vercel.app";
 
 function displayName(summary: PropertySummary): string {
   return (
