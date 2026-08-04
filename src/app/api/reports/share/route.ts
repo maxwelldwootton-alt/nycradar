@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { generateReport } from "@/lib/nyc/report";
+import { generateReport, isReportComplete } from "@/lib/nyc/report";
+import { formatAgencyList } from "@/lib/nyc/classify";
 import { getProperty } from "@/lib/nyc/property";
 import { normalizeBbl } from "@/lib/nyc/bbl";
 import { createShareLink, ShareUnavailableError } from "@/lib/nyc/share";
@@ -35,6 +36,20 @@ export async function POST(request: Request) {
   try {
     const property = await getProperty(bbl).catch(() => null);
     const report = await generateReport(bbl, { property: property ?? undefined });
+
+    // A share link is a permanent snapshot, unlike the page it came from — it
+    // never re-fetches. Freezing a report generated during an agency outage
+    // would hand a counterparty a document that understates the property for
+    // as long as the link lives, so refuse rather than snapshot a gap.
+    if (!isReportComplete(report)) {
+      return NextResponse.json(
+        {
+          error: `${formatAgencyList(report.unavailableSources)} data is temporarily unavailable. Try again in a few minutes — a shared report has to be complete.`,
+        },
+        { status: 503 },
+      );
+    }
+
     const { token } = await createShareLink(report, { accountId: access.accountId });
 
     const base =
