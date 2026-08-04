@@ -1,4 +1,5 @@
 import { sitemapChunks } from "@/lib/nyc/seo-summary";
+import { SITE_URL } from "@/lib/site";
 
 /**
  * Sitemap index over the `/sitemap/{id}.xml` files.
@@ -10,8 +11,6 @@ import { sitemapChunks } from "@/lib/nyc/seo-summary";
  */
 
 export const revalidate = 86400;
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://nycradar.vercel.app";
 
 export async function GET() {
   const chunks = await sitemapChunks();

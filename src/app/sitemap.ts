@@ -6,8 +6,7 @@ import {
   listBoroughSlugs,
   sitemapChunks,
 } from "@/lib/nyc/seo-summary";
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://nycradar.vercel.app";
+import { SITE_URL } from "@/lib/site";
 
 // Sitemaps are crawled periodically, not per-visitor.
 export const revalidate = 86400;

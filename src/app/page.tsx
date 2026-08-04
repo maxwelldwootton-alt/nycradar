@@ -1,7 +1,6 @@
 import { SearchBox } from "@/components/SearchBox";
 import { cardClass } from "@/components/ui/styles";
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://nycradar.vercel.app";
+import { SITE_URL } from "@/lib/site";
 
 const JSON_LD = {
   "@context": "https://schema.org",
