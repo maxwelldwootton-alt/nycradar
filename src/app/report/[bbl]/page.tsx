@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getCachedReport, withProperty } from "@/lib/nyc/report";
+import { persistReport } from "@/lib/nyc/persistence";
 import { getProperty } from "@/lib/nyc/property";
 import { normalizeBbl } from "@/lib/nyc/bbl";
 import { ReportView } from "@/components/ReportView";
@@ -44,6 +45,10 @@ export default async function ReportPage({
     resolveAccess(bbl),
   ]);
   const report = withProperty(cachedReport, property);
+
+  // Bookkeeping only — deferred, best-effort, and a no-op for incomplete
+  // reports. Nothing on this page waits on it.
+  persistReport(report);
 
   let canViewFullReport = access.canViewFullReport;
   let reason = access.reason;

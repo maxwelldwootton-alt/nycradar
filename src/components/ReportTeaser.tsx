@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ViolationReport } from "@/lib/nyc/types";
+import { formatAgencyList } from "@/lib/nyc/classify";
 import { Disclaimer, formatDataAsOf } from "./Disclaimer";
+import { Notice } from "./ui/Notice";
 import { StatCard } from "./ui/StatCard";
 import { buttonClass } from "./ui/styles";
 
@@ -84,6 +86,18 @@ export function ReportTeaser({
           value={summary.docketedJudgments.toLocaleString()}
         />
       </div>
+
+      {/* The teaser sells on these counts, so an outage that suppresses them
+          has to be disclosed here too — not only behind the paywall. */}
+      {report.unavailableSources.length > 0 && (
+        <Notice tone="critical" role="alert" className="mt-5">
+          <strong className="font-semibold">
+            {formatAgencyList(report.unavailableSources)} data could not be
+            retrieved.
+          </strong>{" "}
+          These counts are incomplete. Reload in a few minutes for a full picture.
+        </Notice>
+      )}
 
       <section className="mt-8 rounded-2xl border border-line-strong bg-surface p-6">
         <p className="text-xs font-semibold tracking-[0.14em] text-accent uppercase">

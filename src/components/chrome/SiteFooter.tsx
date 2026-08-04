@@ -46,6 +46,18 @@ export function SiteFooter() {
             >
               Sign in
             </Link>
+            <Link
+              href="/terms"
+              className={`rounded-md motion-safe:transition-colors hover:text-ink ${focusRing}`}
+            >
+              Terms
+            </Link>
+            <Link
+              href="/privacy"
+              className={`rounded-md motion-safe:transition-colors hover:text-ink ${focusRing}`}
+            >
+              Privacy
+            </Link>
           </nav>
         </div>
 

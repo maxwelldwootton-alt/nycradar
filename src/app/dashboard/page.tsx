@@ -88,19 +88,27 @@ export default async function DashboardPage() {
           </p>
         </div>
 
-        {subscribed ? (
-          <form action="/api/billing/portal" method="post">
-            <button type="submit" className={buttonClass({ variant: "outline" })}>
-              Manage billing
+        <div className="flex flex-wrap items-center gap-2">
+          {subscribed ? (
+            <form action="/api/billing/portal" method="post">
+              <button type="submit" className={buttonClass({ variant: "outline" })}>
+                Manage billing
+              </button>
+            </form>
+          ) : (
+            <form action="/api/checkout/subscription" method="post">
+              <button type="submit" className={buttonClass({ variant: "accent" })}>
+                Upgrade — $199/mo
+              </button>
+            </form>
+          )}
+          {/* POST, not a link: sign-out must not be reachable by prefetch. */}
+          <form action="/auth/signout" method="post">
+            <button type="submit" className={buttonClass({ variant: "ghost" })}>
+              Sign out
             </button>
           </form>
-        ) : (
-          <form action="/api/checkout/subscription" method="post">
-            <button type="submit" className={buttonClass({ variant: "accent" })}>
-              Upgrade — $199/mo
-            </button>
-          </form>
-        )}
+        </div>
       </div>
 
       <div className="mt-8">

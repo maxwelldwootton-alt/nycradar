@@ -163,3 +163,17 @@ export const OATH_PROPERTY_AGENCIES = [
   "DOHMH - BFSCS",
   "PCS - DOHMH",
 ] as const;
+
+/**
+ * Join agency codes into readable prose ("DOB and HPD", "DOB, HPD and ECB").
+ *
+ * Lives here rather than in a component because three surfaces — the web
+ * report, the teaser, and the PDF — have to phrase an outage identically. A
+ * PDF that names a different set of missing agencies than the page it was
+ * exported from is exactly the drift these reports cannot afford.
+ */
+export function formatAgencyList(agencies: readonly string[]): string {
+  if (agencies.length === 0) return "";
+  if (agencies.length === 1) return agencies[0];
+  return `${agencies.slice(0, -1).join(", ")} and ${agencies[agencies.length - 1]}`;
+}

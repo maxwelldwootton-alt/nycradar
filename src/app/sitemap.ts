@@ -59,6 +59,18 @@ export default async function sitemap({
         changeFrequency: "monthly" as const,
         priority: 0.6,
       })),
+      // Low priority but present: buyers and payment processors both expect to
+      // be able to find these, and an unlisted policy page reads as an absent one.
+      {
+        url: `${SITE_URL}/terms`,
+        changeFrequency: "yearly",
+        priority: 0.2,
+      },
+      {
+        url: `${SITE_URL}/privacy`,
+        changeFrequency: "yearly",
+        priority: 0.2,
+      },
       ...BOROUGH_SLUGS.map((borough) => ({
         url: `${SITE_URL}/p/${borough}`,
         changeFrequency: "daily" as const,
@@ -70,6 +82,8 @@ export default async function sitemap({
   const chunk = (await sitemapChunks())[index - 1];
   if (!chunk) return [];
 
+  // Property URLs are the slug pages now; the old `/property/{bbl}` seeding
+  // from the `lookups` table is gone with the route, which 301s to these.
   const rows = await listBoroughSlugs(chunk.borough, {
     limit: SITEMAP_CHUNK_SIZE,
     offset: chunk.offset,
