@@ -46,6 +46,69 @@ jobs:
 
       - run: npm ci
 
+      # Without this, a missing credential surfaces as a stack trace from deep
+      # inside the refresh script, which says nothing about *where* the value
+      # was supposed to come from. GitHub renders an unset secret as an empty
+      # string rather than failing, so the mistake is invisible at the call
+      # site. Reports presence only — never a value.
+      - name: Preflight — are credentials visible to this workflow?
+        env:
+          S_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          S_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          S_TOKEN: ${{ secrets.SOCRATA_APP_TOKEN }}
+          # Same names read from the *Variables* tab of the same settings page.
+          # Values added there are `vars.*` and are invisible to `secrets.*`,
+          # which is a silent and very easy mistake to make.
+          V_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          V_KEY: ${{ vars.SUPABASE_SERVICE_ROLE_KEY }}
+          V_TOKEN: ${{ vars.SOCRATA_APP_TOKEN }}
+        run: |
+          state() { if [ -n "$1" ]; then printf 'set'; else printf 'EMPTY'; fi; }
+
+          printf '%-28s %-10s %-10s\n' 'NAME' 'secrets.*' 'vars.*'
+          printf '%-28s %-10s %-10s\n' 'NEXT_PUBLIC_SUPABASE_URL'  "$(state "$S_URL")"   "$(state "$V_URL")"
+          printf '%-28s %-10s %-10s\n' 'SUPABASE_SERVICE_ROLE_KEY' "$(state "$S_KEY")"   "$(state "$V_KEY")"
+          printf '%-28s %-10s %-10s\n' 'SOCRATA_APP_TOKEN'         "$(state "$S_TOKEN")" "$(state "$V_TOKEN")"
+          echo
+
+          if [ -n "$V_URL$V_KEY$V_TOKEN" ] && [ -z "$S_URL$S_KEY" ]; then
+            echo "Found values under Variables but not Secrets."
+            echo "Re-add them on the Secrets tab: Settings -> Secrets and variables -> Actions -> Repository secrets."
+            exit 1
+          fi
+
+          if [ -z "$S_URL" ] || [ -z "$S_KEY" ]; then
+            echo "Missing required credentials."
+            echo "Add them at Settings -> Secrets and variables -> Actions, under *Repository secrets*"
+            echo "(not Variables, and not Environment secrets — this job declares no environment):"
+            if [ -z "$S_URL" ]; then
+              echo "  - NEXT_PUBLIC_SUPABASE_URL   e.g. https://<project-ref>.supabase.co"
+            fi
+            if [ -z "$S_KEY" ]; then
+              echo "  - SUPABASE_SERVICE_ROLE_KEY  the service_role key from Project Settings -> API"
+            fi
+            exit 1
+          fi
+
+          # Catches the most likely wrong value: the site's own domain. This is
+          # the Supabase API endpoint, not where the website is served.
+          case "$S_URL" in
+            https://*.supabase.co|https://*.supabase.co/) ;;
+            *)
+              echo "NEXT_PUBLIC_SUPABASE_URL does not look like a Supabase API endpoint."
+              echo "Expected https://<project-ref>.supabase.co — this is the database URL,"
+              echo "not your website's domain. (Value withheld.)"
+              exit 1
+              ;;
+          esac
+
+          if [ -z "$S_TOKEN" ]; then
+            echo "Note: SOCRATA_APP_TOKEN is unset. The sweep will run, but anonymous"
+            echo "SODA requests are throttled hard and a full pass may be slow or fail."
+          fi
+
+          echo "Credentials look usable."
+
       - name: Refresh summaries
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
