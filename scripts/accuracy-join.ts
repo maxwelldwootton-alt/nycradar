@@ -13,8 +13,11 @@
  *
  * What this reports, and why each one is here:
  *
- *   - **Per-source coverage** — of lots where a source holds anything, how
- *     often did we get it. This is the headline match rate.
+ *   - **Per-source prevalence** — of a random sample of NYC tax lots (most of
+ *     which are simply clean buildings), what share came back with at least
+ *     one record from each source. This is a citywide-prevalence figure, not
+ *     the spike's match rate — see the caveat below, it is the one thing about
+ *     this script's output that is easy to over-claim.
  *   - **BIN-recovery lift** — the same run with recovery disabled, on the
  *     subset that used it. Rule 3 exists because condo billing lots silently
  *     return zero DOB violations; this quantifies how much it is still buying.
@@ -25,11 +28,34 @@
  *     empty. A report that renders "no violations" because an API timed out is
  *     the failure mode this product cannot have.
  *
+ * **What "prevalence" is not: a match rate.** The spike's headline numbers
+ * (BBL-only 92.6%, BBL+BIN 100%, etc.) are *recall* — of lots independently
+ * verified to hold a record, how often the join found it — measured against a
+ * hand-curated set of known-positive lots. This script has no such ground
+ * truth for a random sample: a lot with zero DOB violations returned is
+ * indistinguishable here from a lot whose real DOB violations the join missed,
+ * because both look like "zero rows back" with no error raised. What this
+ * script *can* and does confirm at scale is the thing recall can't: that
+ * nothing throws, that BIN recovery and the dedup rule both keep firing on
+ * real traffic, and how common each agency's records are across an unbiased
+ * sample — which the spike's deliberately-skewed 27-lot set could never tell
+ * you. True recall still needs a small independently-verified positive set,
+ * same method as the spike, just larger. `LAUNCH-CHECKLIST.md` §3's manual
+ * spot-check against an expediter lookup is that check.
+ *
  * Requires SUPABASE_SERVICE_ROLE_KEY (for sampling) and, in practice,
  * SOCRATA_APP_TOKEN — a few thousand lots is a lot of anonymous SODA calls.
+ *
+ * `--input <file>` skips the Supabase sampling call and reads a pre-fetched
+ * JSON array of `{bbl, lot}` instead. `generateReport` itself talks only to
+ * NYC Open Data, so this is what lets the measurement run somewhere that can
+ * reach `data.cityofnewyork.us` but not the project's Supabase host — a
+ * network-restricted CI runner or sandbox, notably. Get the sample with:
+ *
+ *   select bbl, lot from sample_properties(500);
  */
 
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { config } from "dotenv";
 import { generateReport } from "../src/lib/nyc/report";
@@ -45,6 +71,7 @@ interface Options {
   concurrency: number;
   out: string | null;
   measureRecoveryLift: boolean;
+  input: string | null;
 }
 
 function parseArgs(argv: string[]): Options {
@@ -60,6 +87,7 @@ function parseArgs(argv: string[]): Options {
     concurrency: Number(get("--concurrency") ?? 4),
     out: get("--out") ?? null,
     measureRecoveryLift: !argv.includes("--no-recovery-lift"),
+    input: get("--input") ?? null,
   };
 }
 
@@ -174,13 +202,18 @@ function percent(n: number, d: number): string {
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
 
-  console.log(`Sampling ${opts.sample} tax lots…`);
-  const { data, error } = await supabaseService().rpc("sample_properties", {
-    p_count: opts.sample,
-  });
-  if (error) throw new Error(`sample_properties failed: ${error.message}`);
-
-  const lots = (data ?? []) as { bbl: string; lot: number }[];
+  let lots: { bbl: string; lot: number }[];
+  if (opts.input) {
+    console.log(`Reading sample from ${opts.input}…`);
+    lots = JSON.parse(readFileSync(opts.input, "utf8"));
+  } else {
+    console.log(`Sampling ${opts.sample} tax lots…`);
+    const { data, error } = await supabaseService().rpc("sample_properties", {
+      p_count: opts.sample,
+    });
+    if (error) throw new Error(`sample_properties failed: ${error.message}`);
+    lots = (data ?? []) as { bbl: string; lot: number }[];
+  }
   if (lots.length === 0) throw new Error("Sample came back empty — is PLUTO loaded?");
 
   console.log(
@@ -216,6 +249,10 @@ async function main() {
       `(${percent(ok.filter((r) => r.distinctBins > 1).length, ok.length)})`,
   );
 
+  console.log(
+    "\n  Per-agency PREVALENCE in this random sample — not a match rate. See the\n" +
+      "  file header before quoting these numbers as accuracy.",
+  );
   console.log("\n  agency   lots with data   share   recovered by BIN");
   for (const agency of AGENCIES) {
     const withData = ok.filter((r) => r.perAgency[agency].total > 0);
