@@ -45,3 +45,8 @@ next-env.d.ts
 
 # visual sweep output (npm run screenshots)
 screenshots/
+
+# Accuracy-measurement dumps (npm run accuracy:*) — regenerable, and can be
+# large at the recommended ≥1000 sample size. Keep this repo's copy (if any)
+# as a deliberate, named exception via git add -f, not the default.
+/reports/*.json

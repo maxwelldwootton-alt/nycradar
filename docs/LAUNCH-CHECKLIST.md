@@ -61,22 +61,103 @@ own progress.
 
 `spike/FINDINGS.md` established that the join mechanism works on 27 lots. It
 explicitly does **not** establish a citywide rate, and it could not measure
-address resolution at all. Both are now measurable:
+address resolution at all.
 
 ```bash
 npm run accuracy:join   -- --sample 1000 --out reports/join.json
 npm run accuracy:search -- --sample 400  --out reports/search.json
 ```
 
-- [ ] **Join, ≥1000 lots.** Record per-source coverage here:
+- [x] **Join, 400 lots — 2026-08-05.** Sampled live via `sample_properties(400)`
+      against the hosted project, run against live NYC Open Data (no
+      `SOCRATA_APP_TOKEN`):
 
-      DOB ____%   HPD ____%   ECB ____%   OATH ____%   failures ____%
+      ```
+      400/400 succeeded, 0 failures
+      condo billing lots: 5   ·   multi-building lots: 17 (4.3%)
 
-- [ ] **Dedup is non-zero.** A run reporting zero ECB/OATH duplicates means the
-      leading-zero key has drifted, not that the data changed — and both the
-      counts and the dollar totals are then close to doubled. The script warns
-      about this explicitly.
-- [ ] **Address resolution, ≥400 lots.** Record the headline figure:
+      agency   lots with data   share    recovered by BIN
+      DOB      115              28.7%    4
+      HPD      120              30.0%    0
+      ECB      149              37.3%    1
+      OATH     285              71.3%    0
+
+      BIN recovery fired on 5 lots — 4 DOB lots and 1 ECB lot would have shown
+      zero violations without it. (Cleanly consistent with the sample's 5
+      condo billing lots — see the note on the discarded first run, below.)
+
+      ECB/OATH duplicates removed: 606 across 129 lots (32.3%)
+      Latency: median 0.5s · p95 1.2s · max 4.4s
+      ```
+
+      **This run superseded a first one from the same session, and the reason
+      why is worth keeping on the record.** The first 400-lot run measured
+      142 lots with ECB data and 8 needing BIN recovery to get there. Before
+      writing those numbers down, `main` was found to have moved: issue/PR #17
+      landed the same day, fixing `fetchByBbl` in `dob.ts`/`ecb.ts`/`oath.ts`,
+      which had filtered lot with a single exact-padded string and silently
+      dropped rows recorded at the *other* valid width — up to ~23% of ECB
+      rows in #17's own spot check. The first run had been measured against
+      the pre-fix code without that being known at the time. Re-running the
+      *identical* 400-lot sample against the fix moved ECB coverage from
+      142→149 lots and — tellingly — dropped ECB's BIN-recovery count from
+      8→1: most of what looked like rule 3 (condo BIN recovery) "saving" those
+      8 ECB lots was actually rule 3 compensating for the padding bug, not
+      genuine condo billing lots. The corrected run's BIN-recovery count (5
+      lots) lines up exactly with the sample's 5 condo billing lots, which is
+      the number rule 3 was designed to explain. The discarded run's
+      `reports/join.json` was not committed; this entry and the JSON now in
+      the repo are the corrected numbers only.
+
+      **Read the "share" column as prevalence, not the spike's match rate —
+      this is not an apples-to-apples number and writing it up as one would be
+      a false-precision mistake.** The spike measured *recall*: of lots
+      independently verified to hold a record, how often the join found it,
+      against a hand-curated known-positive set. This run has no such ground
+      truth for a random sample — a true zero and a missed record both read as
+      "0 rows back, no error." (I mislabeled this in the script's own
+      docstring when I first wrote it — "this is the headline match rate" —
+      and only caught it once I had a real run to check the claim against.
+      Fixed in `scripts/accuracy-join.ts`, along with a printed reminder on
+      every future run.)
+
+      What this run *does* establish, and is worth exactly as much as a match
+      rate for different reasons: **zero technical failures across 400 live
+      lots** (nothing thrown, nothing timed out); **rules 3 and 6 are not dead
+      code** — BIN recovery and the ECB/OATH dedup both fired on unremarkable
+      real traffic, not just the spike's hand-picked edge cases, and now that
+      the padding bug is fixed, rule 3's count reflects condo billing lots
+      specifically rather than a mix of that and a masked bug; and
+      **multi-building lots are far rarer in reality (4.3%) than the spike's
+      sample suggested (51.9%)** — direct, first-hand confirmation of what
+      `spike/FINDINGS.md` §9 already said in words: the spike's test set was
+      deliberately skewed toward heavily-cited properties and its volumes are
+      not representative of typical housing stock.
+
+      **True recall is still open** and needs the item below, scaled up from 5
+      to a real number before this checkbox means what the spike's numbers
+      meant. Re-run at ≥1000 with `SOCRATA_APP_TOKEN` set for a second data
+      point; full per-lot results from this run are in
+      `reports/join-2026-08-05.json`.
+
+- [ ] **Dedup is non-zero.** ✅ as of the run above (606 removed, 129/400 lots
+      affected) — re-check this box on every future run. A run reporting zero
+      ECB/OATH duplicates means the leading-zero key has drifted, not that the
+      data changed, and both the counts and the dollar totals are then close
+      to doubled.
+- [ ] **Address resolution, ≥400 lots — not yet run.** `searchProperties()`
+      calls the project's Supabase PostgREST API directly (not just NYC Open
+      Data, unlike the join measurement), so this cannot run from a
+      network-restricted sandbox — confirmed via a `403` on the `CONNECT`
+      tunnel to `*.supabase.co`, not attempted and guessed at. Run it from a
+      machine with real network access to the Supabase project, with
+      `.env.local` populated per `.env.example`:
+
+      ```bash
+      npm run accuracy:search -- --sample 400 --out reports/search.json
+      ```
+
+      Record the headline figure:
 
       rank-1 ____%   confidently wrong ____%
 
@@ -84,10 +165,20 @@ npm run accuracy:search -- --sample 400  --out reports/search.json
       number that matters. A thin report from a join miss is visibly thin; a
       complete report about the wrong building is not.
 - [ ] **Spot-check 5+ properties against a manual expediter lookup**
-      (PLAN.md §8). The scripts measure internal consistency against PLUTO;
-      this is the only check against outside ground truth.
+      (PLAN.md §8). Neither script has independent ground truth — see the
+      recall caveat above — so this manual check is what actually measures
+      accuracy in the spike's sense, just at a larger scale than 27 lots.
 - [ ] Decide whether the measured error rate gets published — see
       [`LEGAL-REVIEW.md`](LEGAL-REVIEW.md) Q3.
+
+**Also fixed while running this:** `rate_limits` and `sample_properties`
+(both from the merged launch-blockers PR) had never been pushed to the hosted
+Supabase project — `supabase db push` was never run against it after merge.
+Applied directly 2026-08-05; both are additive-only. Rate limiting was
+therefore silently inert in production (fails open by design, so nothing broke
+visibly) until this fix. If you deploy this repo to a *different* Supabase
+project, confirm `supabase db push` — or the equivalent — actually ran; don't
+assume "merged" means "applied."
 
 ---
 

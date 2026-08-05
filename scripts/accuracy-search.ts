@@ -33,9 +33,21 @@
  * The headline number is not the hit rate. It is **confidently wrong**: how
  * often the top result is labelled `exact` and is the wrong lot. Those are the
  * ones that become a report about somebody else's building.
+ *
+ * `--input <file>` skips the Supabase sampling call and reads a pre-fetched
+ * JSON array of `{bbl, address, borough_code}` instead — useful to reuse the
+ * exact sample `accuracy-join.ts --input` was run against, for an
+ * apples-to-apples comparison, and it's the only way to run this script
+ * somewhere that can't reach the project's Supabase host: unlike the join
+ * measurement, every probe here is itself a live call to
+ * `search_properties_smart` over PostgREST, so `--input` only removes the
+ * initial sampling call, not the network dependency this script has
+ * throughout. Get the sample with:
+ *
+ *   select bbl, address, borough_code from sample_properties(400);
  */
 
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { config } from "dotenv";
 import { searchProperties } from "../src/lib/nyc/property";
@@ -238,17 +250,24 @@ async function main() {
   };
   const sample = Number(get("--sample") ?? 400);
   const out = get("--out") ?? null;
+  const input = get("--input") ?? null;
 
-  console.log(`Sampling ${sample} tax lots…`);
-  const { data, error } = await supabaseService().rpc("sample_properties", {
-    p_count: sample,
-  });
-  if (error) throw new Error(`sample_properties failed: ${error.message}`);
+  let raw: { bbl: string; address: string | null; borough_code: string }[];
+  if (input) {
+    console.log(`Reading sample from ${input}…`);
+    raw = JSON.parse(readFileSync(input, "utf8"));
+  } else {
+    console.log(`Sampling ${sample} tax lots…`);
+    const { data, error } = await supabaseService().rpc("sample_properties", {
+      p_count: sample,
+    });
+    if (error) throw new Error(`sample_properties failed: ${error.message}`);
+    raw = (data ?? []) as { bbl: string; address: string | null; borough_code: string }[];
+  }
 
-  const lots = ((data ?? []) as { bbl: string; address: string | null; borough_code: string }[])
-    .filter((l): l is { bbl: string; address: string; borough_code: string } =>
-      Boolean(l.address && l.address.trim()),
-    );
+  const lots = raw.filter((l): l is { bbl: string; address: string; borough_code: string } =>
+    Boolean(l.address && l.address.trim()),
+  );
 
   if (lots.length === 0) throw new Error("Sample came back empty — is PLUTO loaded?");
   console.log(`${lots.length} of them have an address. Probing…\n`);
