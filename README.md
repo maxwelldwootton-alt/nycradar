@@ -138,6 +138,10 @@ npm run test         # unit tests (offline)
 npm run test:live    # integration tests against live city APIs
 npm run report -- 3000017501   # CLI report for a BBL
 
+# Does the target database actually have what the app calls? Run after any
+# deploy that includes a migration — "merged" has not meant "deployed" here.
+npm run check:db
+
 # Pre-launch accuracy measurement (docs/LAUNCH-CHECKLIST.md §3).
 # Both need SUPABASE_SERVICE_ROLE_KEY, and in practice SOCRATA_APP_TOKEN.
 npm run accuracy:join   -- --sample 1000 --out reports/join.json

@@ -12,6 +12,7 @@
     "test:integration": "vitest run --config vitest.integration.config.mts",
     "typecheck": "tsc --noEmit",
     "report": "tsx scripts/report.ts",
+    "check:db": "tsx scripts/check-db.ts",
     "accuracy:join": "NODE_OPTIONS=--conditions=react-server tsx scripts/accuracy-join.ts",
     "accuracy:search": "NODE_OPTIONS=--conditions=react-server tsx scripts/accuracy-search.ts",
     "seo:refresh": "tsx scripts/refresh-seo-summaries.ts",
