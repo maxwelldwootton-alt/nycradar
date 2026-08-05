@@ -1,5 +1,6 @@
 import type { AgencySection, NormalizedViolation, ViolationReport } from "@/lib/nyc/types";
 import { formatAgencyList, severityLabel } from "@/lib/nyc/classify";
+import { sourceLink } from "@/lib/nyc/source-links";
 import { Disclaimer, formatDataAsOf } from "./Disclaimer";
 import { Badge } from "./ui/Badge";
 import { Notice } from "./ui/Notice";
@@ -34,6 +35,36 @@ function correctionNote(correctionType: NormalizedViolation["correctionType"]): 
  * balance column, the one a reader is looking for, sits off-screen by default.
  * Same data, stacked.
  */
+/**
+ * Link out to the city's own record for this violation.
+ *
+ * Renders nothing at all when the source's URL pattern has not been verified
+ * against a live record — see `source-links.ts`. On a due-diligence report a
+ * dead link is worse than no link, so the absent state is the safe default and
+ * every row currently takes it.
+ *
+ * `rel="noopener"` because these open in a new tab: the reader is mid-report
+ * and shouldn't lose it to a city portal. `noreferrer` is deliberately not
+ * set — passing the referrer is harmless here and some city portals behave
+ * badly without one.
+ */
+function SourceRecordLink({ v, className = "" }: { v: NormalizedViolation; className?: string }) {
+  const link = sourceLink(v);
+  if (!link) return null;
+
+  return (
+    <a
+      href={link.href}
+      target="_blank"
+      rel="noopener"
+      className={`inline-block text-accent underline underline-offset-2 hover:no-underline ${className}`}
+    >
+      {link.label} <span aria-hidden="true">↗</span>
+      <span className="sr-only">(opens in a new tab)</span>
+    </a>
+  );
+}
+
 function ViolationCard({ v }: { v: NormalizedViolation }) {
   const label = severityLabel(v.agency, v.severity);
   const note = correctionNote(v.correctionType);
@@ -64,6 +95,8 @@ function ViolationCard({ v }: { v: NormalizedViolation }) {
         Issued {v.issuedDate ?? "date unavailable"}
         {note && ` · ${note}`}
       </p>
+
+      <SourceRecordLink v={v} className="mt-2.5 text-xs" />
     </li>
   );
 }
@@ -101,6 +134,7 @@ function ViolationRow({ v }: { v: NormalizedViolation }) {
             ({v.correctionType === "administrative" ? "paperwork" : "physical correction"})
           </span>
         )}
+        <SourceRecordLink v={v} className="ml-2 text-xs" />
       </td>
       <td className="py-2.5 text-right whitespace-nowrap tabular-nums text-ink">
         {v.balanceDue ? money(v.balanceDue) : "—"}
