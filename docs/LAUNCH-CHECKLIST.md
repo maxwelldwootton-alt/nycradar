@@ -278,9 +278,15 @@ surprises.
   live portal on 2026-08-05, **the city publishes no property-keyed stop-work
   order dataset.** They can only be inferred from ECB violation types or DOB
   complaint dispositions. Don't scope this as "add another source."
-- **The "Outstanding balance" figure is incomplete.** It sums ECB/OATH
-  penalties only, and counts none of the ~611k HPD emergency-repair charges
-  assessed directly against properties (`mdbu-nrqn`, `sbnd-xujn`). On an
-  affected building the headline dollar number is understated. This is the one
-  known gap that makes a *displayed* number wrong rather than absent — see
-  [`FEATURES.md`](FEATURES.md) §10.
+- **No HPD emergency-repair-charge history.** HPD bills properties for
+  emergency work an owner failed to do (`mdbu-nrqn`, `sbnd-xujn`); the report
+  shows none of it. Repeated HPD intervention at a building is
+  transaction-relevant.
+
+  An earlier version of this line said the **"Outstanding balance"** figure was
+  *understated* because it omits these charges. **That was wrong** — those
+  datasets record amounts assessed with no payment or balance field at all, and
+  amounts appear even on work orders the owner resolved themselves. Adding them
+  to that card would have overstated what a property owes. Corrected in
+  [`FEATURES.md`](FEATURES.md) §10; there is no evidence the balance figure is
+  wrong in either direction.

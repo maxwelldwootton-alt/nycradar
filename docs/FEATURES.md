@@ -292,8 +292,10 @@ needs its own freshness label.
 
 ## 10. Money the city has already assessed against the property
 
-**Verified 2026-08-05. This is the largest gap in the list above, and unlike
-every other entry it corrects a number the report already displays.**
+**Verified 2026-08-05.** Sources covering money the city has assessed against a
+property, and liens arising from it. Read the correction box below before
+scoping any of this — the first version of this section overclaimed what these
+datasets contain.
 
 | Dataset | ID | Rows | Keys | Updated |
 |---|---|---|---|---|
@@ -301,20 +303,43 @@ every other entry it corrects a number the report already displays.**
 | HPD Handyman Work Order (HWO) Charges | `sbnd-xujn` | 99,197 | `bbl`, `bin`, `block`, `lot` | 2026-08-04 |
 | Tax Lien Sale Lists | `9rz4-mjek` | 264,142 | `block`, `lot`, `borough` | **2025-12-01** |
 
-**Why this outranks §4–§9.** In the portal's own words, OMO/HWO are *"fees
-assessed against properties by HPD"* for emergency repair work done when an
-owner failed to fix a hazardous condition themselves. HPD does the work and
-bills the property.
+In the portal's own words, OMO/HWO are *"fees assessed against properties by
+HPD"* for emergency repair work done when an owner failed to fix a hazardous
+condition themselves. HPD does the work and bills the property. Both are BBL
+*and* BIN keyed and updated daily, so they join with the existing machinery and
+need no new rules.
 
-The report already renders an **"Outstanding balance"** stat card, and it
-currently sums ECB/OATH penalties only. It counts **none** of these 611k HPD
-charges. So on a building carrying emergency repair charges, the headline
-dollar figure — the one this product is sold on — is silently understated.
-That makes this closer to a correctness defect than a feature gap, and it
-lands in a stat card that already exists rather than needing new UI.
-
-Both are BBL *and* BIN keyed and both updated daily, so they join with the
-existing machinery and need no new rules.
+> ### ⚠️ Correction — do not add these to "Outstanding balance"
+>
+> An earlier version of this section claimed these charges should be summed
+> into the report's existing **"Outstanding balance"** stat, and that the
+> figure was therefore "silently understated." **That was wrong**, and it was
+> asserted from the dataset descriptions without checking the columns. Checked
+> properly on 2026-08-05:
+>
+> **Neither dataset has any payment, balance, or outstanding field.**
+> `omoawardamount` and `chargeamount` are amounts *assessed*, with nothing
+> recording what was subsequently paid. `lifecycle` describes the *building*
+> (Standing / Demolished / Vacant Land), not the charge.
+>
+> Worse, the amounts are present on work orders that never produced a
+> chargeable repair. Of 491,001 OMO rows carrying an amount above zero,
+> **26,272 are `Landlord Complied`** — the owner fixed it themselves — and 945
+> are `Duplicate OMO`. Summing the column naively would *overstate* what a
+> property owes, on a figure a buyer may act on. That is a worse failure than
+> the understatement it was meant to fix.
+>
+> So: **these are an intervention signal, not a balance.** HPD having to do
+> emergency work at a building, repeatedly, is genuinely transaction-relevant —
+> as a count and a history. If any dollar figure is shown it must be labelled
+> *charges assessed* rather than *outstanding*, and it must exclude the
+> statuses above. It does not belong in the existing balance card.
+>
+> The question that card actually implies — *is there unpaid money attached to
+> this property?* — is answered by the Tax Lien Sale List below, not by these.
+> `datetransferdof` is the closest thing here: 78,983 of 99,197 HWO charges
+> (79.6%) have been transferred to the Department of Finance for collection,
+> which is a step toward collection but still not a balance.
 
 **Tax Lien Sale Lists** is the most direct answer to the question the product
 is built around: *"Properties with tax, water liens and other charges that are
@@ -328,10 +353,16 @@ periodic event, so that may be normal cadence rather than abandonment —
 **confirm the publication schedule before relying on it**, because from the
 outside "annual list" and "abandoned dataset" look identical.
 
-**Size.** Small for OMO/HWO — same shape as any existing source module, and
-the aggregation target already exists. Medium for the lien list, mostly in
-deciding how to present a periodic snapshot next to daily-refreshed data
-without implying they are equally current.
+**Size.** Small for OMO/HWO — same shape as any existing source module — but
+note it needs a status filter and its own presentation, *not* a line into the
+existing balance card. Medium for the lien list, mostly in deciding how to
+present a periodic snapshot next to daily-refreshed data without implying they
+are equally current.
+
+**Of the two, the lien list is the more interesting** for the question the
+product is built around, because it is the one that actually describes money
+still owed. It is also the one with the freshness caveat, which is an awkward
+combination and worth resolving before either is scoped.
 
 ---
 
@@ -386,13 +417,13 @@ data source, and together they make the existing report feel worth $49.
 defensible, and it should not slip behind a queue of data-source additions that
 are individually cheaper.
 
-**Then, in order of signal per unit of work:** **§10** → §4 → §5 → §7 → §6 →
-§8 → §11 → §9.
+**Then, in order of signal per unit of work:** §4 → §5 → §10 → §7 → §6 → §8 →
+§11 → §9.
 
-§10 leads because it is the only data-source item that fixes a number already
-on screen rather than adding a new one — an understated "Outstanding balance"
-is a wrong answer, and every other entry here is a missing answer. Wrong beats
-missing for urgency on a due-diligence product.
+§10 briefly led this list on the claim that it fixed a wrong number already on
+screen. That claim did not survive checking the columns — see the correction
+box in §10 — so it sits back among the other data-source additions, ahead of
+§7 on the strength of the lien list rather than the HPD charges.
 
 (Section numbers are identity, not rank — this line is the rank. §10 and §11
 were appended after the original nine rather than renumbered, so that
@@ -401,8 +432,9 @@ references elsewhere in this doc stay valid.)
 **Two things that are not features and gate several of these:** run
 `npm run accuracy:search` (§8 is unwise without it) and get an answer to
 [`LEGAL-REVIEW.md`](LEGAL-REVIEW.md) Q1 (§5, §6 and §10 all broaden what the
-report claims to cover — §10 most of all, since it changes a dollar figure a
-buyer may act on).
+report claims to cover — §10 especially, since presenting assessed charges as
+though they were amounts owed is precisely the kind of overstatement Q1 asks
+about).
 
 ---
 
