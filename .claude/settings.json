@@ -3,7 +3,27 @@
     "allow": [
       "mcp__Supabase__*",
       "mcp__Vercel__*",
-      "mcp__github__*"
+      "mcp__github__*",
+
+      "Bash(npm run typecheck)",
+      "Bash(npm run test)",
+      "Bash(npm run lint)",
+      "Bash(npm run build)",
+
+      "mcp__bf7c680d-5fdc-5ef4-b4a0-abadb619bf0a__send_later",
+      "mcp__bf7c680d-5fdc-5ef4-b4a0-abadb619bf0a__delete_trigger",
+
+      "mcp__353d9109-ae0e-4228-9587-b4283140f184__list_projects",
+      "mcp__353d9109-ae0e-4228-9587-b4283140f184__list_tables",
+      "mcp__353d9109-ae0e-4228-9587-b4283140f184__list_migrations",
+      "mcp__353d9109-ae0e-4228-9587-b4283140f184__list_extensions",
+      "mcp__353d9109-ae0e-4228-9587-b4283140f184__list_branches",
+      "mcp__353d9109-ae0e-4228-9587-b4283140f184__get_project",
+      "mcp__353d9109-ae0e-4228-9587-b4283140f184__get_project_url",
+      "mcp__353d9109-ae0e-4228-9587-b4283140f184__get_publishable_keys",
+      "mcp__353d9109-ae0e-4228-9587-b4283140f184__get_advisors",
+      "mcp__353d9109-ae0e-4228-9587-b4283140f184__get_logs",
+      "mcp__353d9109-ae0e-4228-9587-b4283140f184__search_docs"
     ]
   }
 }
