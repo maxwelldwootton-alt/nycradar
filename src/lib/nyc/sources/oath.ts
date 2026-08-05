@@ -13,11 +13,13 @@
  *   - non-DOB property violations, including FDNY
  *
  * Keys: borough as a NAME ('STATEN IS', not 'STATEN ISLAND'), block 5-wide,
- * lot 4-wide.
+ * lot 4-wide is the documented convention — but a meaningful fraction of live
+ * rows use 5-wide lot instead (see issue #17), so the fetch below matches
+ * both widths rather than trusting a single exact string.
  */
 
 import { sodaAll, soqlString } from "../socrata";
-import { BORO_CODE_TO_NAME, dedupKey, padBlock, padLot, splitBbl } from "../bbl";
+import { BORO_CODE_TO_NAME, dedupKey, padBlock, padLotVariants, splitBbl } from "../bbl";
 import { OATH_PROPERTY_AGENCIES } from "../classify";
 import { cleanText, parseCityDate, parseMoney } from "../parse";
 import type { MatchedBy, NormalizedViolation } from "../types";
@@ -84,7 +86,9 @@ export async function fetchByBbl(
   const where = [
     `violation_location_borough=${soqlString(boroName)}`,
     `violation_location_block_no=${soqlString(padBlock(parts.block))}`,
-    `violation_location_lot_no=${soqlString(padLot(parts.lot, 4))}`,
+    // Match both 4- and 5-wide lot — a single exact-padded string misses a
+    // meaningful fraction of rows recorded at the other width (issue #17).
+    `violation_location_lot_no in(${padLotVariants(parts.lot).map(soqlString).join(", ")})`,
     agencyFilter(),
   ].join(" AND ");
 

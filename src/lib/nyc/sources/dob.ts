@@ -2,12 +2,22 @@
  * DOB Violations (`3h2n-5cm9`) — civil penalties issued in DOB's Buildings
  * Information System.
  *
- * Padding: block 5-wide, **lot 5-wide**. This is the outlier — every other
- * source pads lot to 4. See spike/FINDINGS.md §3.
+ * Padding: block 5-wide, **lot 5-wide** is the documented convention — this
+ * is the outlier, since every other source pads lot to 4. But a meaningful
+ * fraction of live rows use 4-wide lot instead (see issue #17), so the fetch
+ * below matches both widths rather than trusting a single exact string. See
+ * spike/FINDINGS.md §3.
  */
 
 import { sodaAll, soqlString } from "../socrata";
-import { canonicalBbl, cleanBin, dedupKey, padBlock, padLot, splitBbl } from "../bbl";
+import {
+  canonicalBbl,
+  cleanBin,
+  dedupKey,
+  padBlock,
+  padLotVariants,
+  splitBbl,
+} from "../bbl";
 import { cleanText, parseCityDate } from "../parse";
 import { correctionType } from "../classify";
 import type { MatchedBy, NormalizedViolation } from "../types";
@@ -61,8 +71,9 @@ export async function fetchByBbl(
   const where = [
     `boro=${soqlString(parts.boro)}`,
     `block=${soqlString(padBlock(parts.block))}`,
-    // Lot padded to 5 here — 4 would silently return nothing.
-    `lot=${soqlString(padLot(parts.lot, 5))}`,
+    // Match both 4- and 5-wide lot — a single exact-padded string misses a
+    // meaningful fraction of rows recorded at the other width (issue #17).
+    `lot in(${padLotVariants(parts.lot).map(soqlString).join(", ")})`,
   ].join(" AND ");
   return sodaAll<DobRow>("dob", { $select: SELECT, $where: where }, { maxRows: MAX_ROWS });
 }

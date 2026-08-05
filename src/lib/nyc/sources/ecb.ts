@@ -5,13 +5,22 @@
  * than the OATH Hearings dataset the PRD names: it carries native `bin`,
  * `boro`, `block`, `lot` plus the money fields.
  *
- * Padding: block 5-wide, **lot 4-wide** (unlike DOB Violations, which pads
- * lot to 5). Note also that the penalty field is misspelled `penality_imposed`
- * in the source — that is not a typo here.
+ * Padding: block 5-wide, **lot 4-wide** is the documented convention (unlike
+ * DOB Violations, which pads lot to 5) — but ~23% of live rows use 5-wide lot
+ * instead (see issue #17), so the fetch below matches both widths rather than
+ * trusting a single exact string. Note also that the penalty field is
+ * misspelled `penality_imposed` in the source — that is not a typo here.
  */
 
 import { sodaAll, soqlString } from "../socrata";
-import { canonicalBbl, cleanBin, dedupKey, padBlock, padLot, splitBbl } from "../bbl";
+import {
+  canonicalBbl,
+  cleanBin,
+  dedupKey,
+  padBlock,
+  padLotVariants,
+  splitBbl,
+} from "../bbl";
 import { cleanText, parseCityDate, parseMoney } from "../parse";
 import { correctionType } from "../classify";
 import type { MatchedBy, NormalizedViolation } from "../types";
@@ -69,8 +78,9 @@ export async function fetchByBbl(
   const where = [
     `boro=${soqlString(parts.boro)}`,
     `block=${soqlString(padBlock(parts.block))}`,
-    // Lot padded to 4 here — DOB Violations uses 5 for the same concept.
-    `lot=${soqlString(padLot(parts.lot, 4))}`,
+    // Match both 4- and 5-wide lot — a single exact-padded string misses a
+    // meaningful fraction of rows recorded at the other width (issue #17).
+    `lot in(${padLotVariants(parts.lot).map(soqlString).join(", ")})`,
   ].join(" AND ");
   return sodaAll<EcbRow>("ecb", { $select: SELECT, $where: where }, { maxRows: MAX_ROWS });
 }
