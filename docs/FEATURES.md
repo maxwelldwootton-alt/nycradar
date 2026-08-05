@@ -24,10 +24,10 @@ Companion docs: [`LAUNCH-CHECKLIST.md`](LAUNCH-CHECKLIST.md) is the gate
 build plan. [`../spike/FINDINGS.md`](../spike/FINDINGS.md) is why the data
 layer is shaped the way it is.
 
-**Every dataset ID below was verified against the live NYC Open Data portal on
-2026-08-04** — name, key columns, row count and last-updated date. Sizing
-estimates are not verified; they are judgement calls and should be treated as
-such.
+**Every dataset ID below was verified against the live NYC Open Data portal**
+— name, key columns, row count and last-updated date. §1–§9 on 2026-08-04;
+§10, §11 and the dead-ends table on 2026-08-05. Sizing estimates are not
+verified; they are judgement calls and should be treated as such.
 
 ---
 
@@ -290,6 +290,81 @@ needs its own freshness label.
 
 ---
 
+## 10. Money the city has already assessed against the property
+
+**Verified 2026-08-05. This is the largest gap in the list above, and unlike
+every other entry it corrects a number the report already displays.**
+
+| Dataset | ID | Rows | Keys | Updated |
+|---|---|---|---|---|
+| HPD Open Market Order (OMO) Charges | `mdbu-nrqn` | 510,765 | `bbl`, `bin`, `block`, `lot` | 2026-08-04 |
+| HPD Handyman Work Order (HWO) Charges | `sbnd-xujn` | 99,197 | `bbl`, `bin`, `block`, `lot` | 2026-08-04 |
+| Tax Lien Sale Lists | `9rz4-mjek` | 264,142 | `block`, `lot`, `borough` | **2025-12-01** |
+
+**Why this outranks §4–§9.** In the portal's own words, OMO/HWO are *"fees
+assessed against properties by HPD"* for emergency repair work done when an
+owner failed to fix a hazardous condition themselves. HPD does the work and
+bills the property.
+
+The report already renders an **"Outstanding balance"** stat card, and it
+currently sums ECB/OATH penalties only. It counts **none** of these 611k HPD
+charges. So on a building carrying emergency repair charges, the headline
+dollar figure — the one this product is sold on — is silently understated.
+That makes this closer to a correctness defect than a feature gap, and it
+lands in a stat card that already exists rather than needing new UI.
+
+Both are BBL *and* BIN keyed and both updated daily, so they join with the
+existing machinery and need no new rules.
+
+**Tax Lien Sale Lists** is the most direct answer to the question the product
+is built around: *"Properties with tax, water liens and other charges that are
+potentially eligible to be included in the next lien sale."* It also quietly
+closes a gap — **water arrears are not published as a standalone dataset**, but
+surface here as water liens.
+
+Two caveats on it. It has no `bbl` column (`block`/`lot`/`borough` — rule 1
+handles that). And it was last updated **2025-12-01**. The lien sale is a
+periodic event, so that may be normal cadence rather than abandonment —
+**confirm the publication schedule before relying on it**, because from the
+outside "annual list" and "abandoned dataset" look identical.
+
+**Size.** Small for OMO/HWO — same shape as any existing source module, and
+the aggregation target already exists. Medium for the lien list, mostly in
+deciding how to present a periodic snapshot next to daily-refreshed data
+without implying they are equally current.
+
+---
+
+## 11. Smaller verified additions
+
+| Dataset | ID | Rows | Keys | Updated |
+|---|---|---|---|---|
+| Asbestos Control Program (ACP7) | `vq35-j9qm` | 395,278 | `bbl`, `bin`, `block`, `lot` | 2026-08-01 |
+| Landmarks Violations | `wycc-5aqt` | 5,772 | `bin`, `block`, `lot` | 2026-06-22 |
+| CONH Pilot Building List | `bzxi-2tsw` | 1,580 | `bbl`, `bin`, `block`, `lot` | 2026-07-13 |
+
+Landmarks is tiny but high-signal: a landmarked building carries real
+restrictions on what a buyer can subsequently do, which is transaction-relevant
+in a way a violation count is not.
+
+---
+
+## Dead ends — checked, and not available
+
+Recorded so nobody spends an afternoon re-hunting them. All checked against the
+live portal on 2026-08-05.
+
+| Looked for | Finding |
+|---|---|
+| **DOB stop-work orders** | **No dataset exists.** Searched several ways; nothing property-keyed. SWOs would have to be inferred from ECB violation types or DOB complaint dispositions — a different and far less reliable job than a join. Any doc implying SWO data is straightforwardly available is wrong. |
+| **Local Law 97 building emissions** | Not published. Only *municipal* building benchmarking (`vvj6-d5qx`). Given LL97 penalties are a major forward liability on large buildings, this is a gap in the city's publishing, not in ours. |
+| **LL33 energy grades** | `355w-xvp2` exists but was last updated **2022-03-07** — four years stale. Not usable. |
+| **Sidewalk violations** | `6kbp-uz6m` — 313k rows, updated daily, and **no property key at all**. Unjoinable by BBL or BIN. |
+| **DEP water arrears** | No standalone dataset. Partially covered via water liens in `9rz4-mjek` above. |
+| **HPD 7A administrator** | No dataset. |
+
+---
+
 ## Not now, and why
 
 | Candidate | Why not yet |
@@ -311,12 +386,23 @@ data source, and together they make the existing report feel worth $49.
 defensible, and it should not slip behind a queue of data-source additions that
 are individually cheaper.
 
-**Then, in order of signal per unit of work:** §4 → §5 → §7 → §6 → §8 → §9.
+**Then, in order of signal per unit of work:** **§10** → §4 → §5 → §7 → §6 →
+§8 → §11 → §9.
+
+§10 leads because it is the only data-source item that fixes a number already
+on screen rather than adding a new one — an understated "Outstanding balance"
+is a wrong answer, and every other entry here is a missing answer. Wrong beats
+missing for urgency on a due-diligence product.
+
+(Section numbers are identity, not rank — this line is the rank. §10 and §11
+were appended after the original nine rather than renumbered, so that
+references elsewhere in this doc stay valid.)
 
 **Two things that are not features and gate several of these:** run
 `npm run accuracy:search` (§8 is unwise without it) and get an answer to
-[`LEGAL-REVIEW.md`](LEGAL-REVIEW.md) Q1 (§5 and §6 both broaden what the report
-claims to cover).
+[`LEGAL-REVIEW.md`](LEGAL-REVIEW.md) Q1 (§5, §6 and §10 all broaden what the
+report claims to cover — §10 most of all, since it changes a dollar figure a
+buyer may act on).
 
 ---
 
@@ -333,6 +419,24 @@ curl -s "https://data.cityofnewyork.us/resource/tb8q-a3ar.json?\$select=count(*)
 
 Note that `api.us.socrata.com` (the cross-domain catalog) is **not** reachable
 from the build environment — use the `data.cityofnewyork.us` endpoints above.
-Re-verify row counts and update dates before committing to any of these; two
-of the datasets here are already months stale and that is exactly the kind of
-thing that changes quietly.
+Re-verify row counts and update dates before committing to any of these;
+several datasets here are already months or years stale and that is exactly the
+kind of thing that changes quietly.
+
+**The catalog endpoint federates.** Searching it returns hits from other
+Socrata domains — a search for "lien sale" comes back with an Illinois county
+treasurer's tax sale, and "local law 97" with New York *State* school aid.
+Filter on `metadata.domain` containing `cityofnewyork`, or you will end up
+profiling a dataset that has nothing to do with NYC:
+
+```bash
+curl -s "https://data.cityofnewyork.us/api/catalog/v1?q=lien+sale&limit=6" \
+  | python3 -c "import json,sys; [print(r['resource']['id'], r['resource']['name']) \
+      for r in json.load(sys.stdin)['results'] \
+      if 'cityofnewyork' in r.get('metadata',{}).get('domain','')]"
+```
+
+**Check `rowsUpdatedAt` before anything else.** Of the datasets profiled on
+2026-08-05, one was four years stale (`355w-xvp2`) and one had no property key
+at all despite daily updates (`6kbp-uz6m`). Both look perfectly healthy from a
+search-results list.
