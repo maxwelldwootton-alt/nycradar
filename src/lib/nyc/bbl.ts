@@ -146,6 +146,21 @@ export function padLot(lot: number, width: 4 | 5): string {
 }
 
 /**
+ * Both zero-padding widths a lot may be recorded at, for use in a `$where …
+ * in (...)` clause.
+ *
+ * Each source documents one width as its convention (DOB 5-wide, ECB/OATH
+ * 4-wide — see the header comments in `sources/*.ts`), but that is only the
+ * *typical* width: a meaningful fraction of live rows use the other width for
+ * the same physical lot (up to ~23% of ECB rows — see issue #17). Matching a
+ * single exact-padded string silently drops those rows and undercounts the
+ * report. Always match both widths; never a single exact `lot=` string.
+ */
+export function padLotVariants(lot: number): string[] {
+  return [padLot(lot, 4), padLot(lot, 5)];
+}
+
+/**
  * Strip leading zeros for cross-source identity comparison.
  *
  * OATH's `ticket_number` is the ECB violation number with a leading zero

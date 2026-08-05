@@ -15,6 +15,7 @@ import {
   normalizeBbl,
   padBlock,
   padLot,
+  padLotVariants,
   splitBbl,
   boroughCodeFromName,
 } from "@/lib/nyc/bbl";
@@ -63,6 +64,13 @@ describe("per-source padding", () => {
     expect(padLot(1, 5)).toBe("00001");
     // The trap: DOB's 5-wide lot vs ECB's 4-wide for the same lot.
     expect(padLot(38, 5)).not.toBe(padLot(38, 4));
+  });
+
+  it("padLotVariants returns both widths a live row might use (issue #17)", () => {
+    // A single exact-padded string silently drops rows recorded at the other
+    // width — sources must query both, not just their documented convention.
+    expect(padLotVariants(1)).toEqual(["0001", "00001"]);
+    expect(padLotVariants(38)).toEqual(["0038", "00038"]);
   });
 });
 
