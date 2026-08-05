@@ -41,6 +41,40 @@ import {
 import { slugifyAddress, SlugAllocator } from "../src/lib/nyc/seo-slug";
 import { OATH_PROPERTY_AGENCIES } from "../src/lib/nyc/classify";
 
+/**
+ * Mirrors `isNewApiKey` in `@supabase/supabase-js`'s own fetch wrapper (used
+ * internally only to special-case Edge Functions — see below).
+ */
+function isNewFormatKey(key: string): boolean {
+  return key.startsWith("sb_publishable_") || key.startsWith("sb_secret_");
+}
+
+/**
+ * `createClient()` defaults to sending the key as both `apikey` and
+ * `Authorization: Bearer <key>` when there's no user session — correct for
+ * the legacy JWT-based `service_role` key, but not for the newer non-JWT
+ * `sb_secret_...` format: the gateway forwards a request whose Authorization
+ * matches apikey down to Postgres, which rejects it outright for not being a
+ * JWT (confirmed directly against this project's REST endpoint — apikey alone
+ * succeeds, apikey + matching Authorization returns 401 "Invalid API key").
+ *
+ * supabase-js already has this exact fix, but only wires it into the Edge
+ * Functions client (`omitApiKeyAsBearer`) — not the general REST client this
+ * script's `.from()` calls go through. This script never authenticates a user
+ * session (`persistSession: false`), so `apikey` alone already identifies it
+ * as the secret key; stripping the redundant Authorization avoids the
+ * conflict. Only applied when the configured key is the new format — a legacy
+ * JWT `service_role` key still needs Authorization for role resolution.
+ */
+function fetchWithoutRedundantAuth(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
+  const headers = new Headers(init?.headers);
+  headers.delete("Authorization");
+  return fetch(input, { ...init, headers });
+}
+
 const BOROUGH_SLUGS: Record<string, string> = {
   "1": "manhattan",
   "2": "bronx",
@@ -423,7 +457,10 @@ async function main() {
   }
   // Constructed here rather than via src/lib/supabase/server.ts: that module is
   // marked `server-only`, which throws outside the Next.js runtime.
-  const db = createClient(url, serviceKey, { auth: { persistSession: false } });
+  const db = createClient(url, serviceKey, {
+    auth: { persistSession: false },
+    global: isNewFormatKey(serviceKey) ? { fetch: fetchWithoutRedundantAuth } : undefined,
+  });
 
   // Sustained bulk reads, unlike the handful a report page makes. Anonymous
   // Socrata traffic is throttled hard, so pace the sweep.
