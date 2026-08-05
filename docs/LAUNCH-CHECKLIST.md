@@ -46,8 +46,28 @@ own progress.
       pointed at `/api/stripe/webhook` for `checkout.session.completed` and
       `customer.subscription.{created,updated,deleted}`, and
       `STRIPE_WEBHOOK_SECRET` set from the live endpoint (not the test one).
-- [ ] Migrations applied to the production project: `supabase db push`. The two
-      newest add rate limiting and the accuracy-sampling helper.
+- [ ] **`npm run check:db` passes against production.** This replaces the old
+      "migrations applied" checkbox, which was wrong twice — see below. It asks
+      the database whether every object the app calls is actually there, rather
+      than trusting that a merge reached it.
+- [ ] Migrations applied to the production project: `supabase db push`.
+
+> **"Merged" has not meant "deployed" on this project, twice.** Both times the
+> gap was silent, because both affected systems fail open:
+>
+> * `rate_limits` / `sample_properties` were merged and never applied. The rate
+>   limiter had no table, so it simply stopped limiting. *(Found and fixed
+>   2026-08-05.)*
+> * `claim_free_lookup` was merged and never applied. Every free-tier claim
+>   errored, `recordLookup` failed open, nothing was ever written to `lookups`,
+>   and `free_lookups_remaining` answered 1 forever — **the free tier was
+>   effectively unlimited, and nothing anywhere reported an error.** *(Found and
+>   fixed 2026-08-05; the free tier had never actually enforced in production.)*
+>
+> Neither was catchable by tests, typecheck, or build: RPC names are string
+> literals, so nothing upstream of the live database knows they are wrong. That
+> is what `npm run check:db` and `assert_db_contract()` now cover. When you add
+> a table or RPC the app depends on, add it to the contract too.
 - [ ] PLUTO loaded — `select ingest_pluto_page(0, 5000);` until it returns 0.
       Address search returns nothing without it.
 - [ ] **`npm run seo:refresh` has run at least once, and is scheduled.** The
@@ -195,6 +215,10 @@ Not unit-tested, because the failure modes are in the integrations.
       requested it** — open the link on a phone after requesting on a desktop.
       This is the case PKCE cannot serve and the token-hash flow exists for.
 - [ ] **Free tier.** One full report, then confirm the second is paywalled.
+      Do this with a **fresh** email — one with an existing `lookups` row is
+      already paywalled and will pass whether or not the limit works. This is
+      the check that would have caught the unlimited-free-tier bug above, and
+      only on a first-time address.
 - [ ] **$49 purchase, in full, with a real card.** Complete checkout →
       confirm the delivery email arrives → open the link from the email in a
       browser with no session → confirm the full report renders.

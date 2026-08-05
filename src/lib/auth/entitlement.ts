@@ -14,6 +14,7 @@
 import "server-only";
 import { supabaseService, hasServiceRole } from "@/lib/supabase/server";
 import { currentUser } from "@/lib/supabase/session";
+import { captureError } from "@/lib/observability/capture";
 
 export type Entitlement = "anonymous" | "free" | "subscription" | "single_purchase";
 
@@ -149,13 +150,39 @@ export async function resolveAccess(bbl: string): Promise<AccessDecision> {
 }
 
 /**
+ * True when a Postgres/PostgREST error means "this function isn't there",
+ * rather than "the call failed this time".
+ *
+ * PostgREST answers a missing RPC from its schema cache with `PGRST202`;
+ * Postgres itself raises SQLSTATE `42883` (undefined_function). The two are
+ * checked separately because which one surfaces depends on whether the schema
+ * cache has been reloaded, and treating a permanent fault as transient is
+ * exactly the bug this distinction exists to prevent.
+ */
+function isMissingFunction(error: { code?: string; message?: string }): boolean {
+  if (error.code === "PGRST202" || error.code === "42883") return true;
+  return /does not exist|could not find the function/i.test(error.message ?? "");
+}
+
+/**
  * Record a lookup. Also what enforces the free-tier limit, so it must be called
  * exactly once per full report view — and never for a teaser.
  *
- * Returns false only when a free-tier claim was requested but lost a race to a
- * concurrent claim for the same email (see `claim_free_lookup`) — the caller
- * must not render the full report in that case, since the grant it was
- * counting on has just been taken by the other request.
+ * Returns false when the caller must not render the full report: either a
+ * free-tier claim lost a race to a concurrent claim for the same email (see
+ * `claim_free_lookup`), or the claim could not be recorded at all.
+ *
+ * **On failure this deliberately splits transient from permanent.** A blip
+ * talking to Postgres fails *open* — one user getting a free report they were
+ * probably entitled to is the cheaper error. A *missing* `claim_free_lookup`
+ * fails *closed*, because it is not a blip: the function is either deployed or
+ * it isn't, so failing open would mean nothing is ever written to `lookups`,
+ * `free_lookups_remaining` would answer 1 forever, and every email would get
+ * unlimited free reports with no error anyone would ever see.
+ *
+ * That is not hypothetical — it is what production did until 2026-08-05,
+ * because the migration creating this function was merged but never applied.
+ * `npm run check:db` exists to catch that class of drift before it ships.
  */
 export async function recordLookup(params: {
   bbl: string;
@@ -178,7 +205,14 @@ export async function recordLookup(params: {
       address,
       entitlement: decision.entitlement,
     });
-    if (error) console.error("could not record lookup", error.message);
+    if (error) {
+      captureError(new Error(`could not record lookup: ${error.message}`), {
+        tag: "entitlement",
+        stage: "record_lookup",
+        entitlement: decision.entitlement,
+        bbl,
+      });
+    }
     return true;
   }
 
@@ -194,7 +228,27 @@ export async function recordLookup(params: {
   });
 
   if (error) {
-    console.error("could not claim free lookup", error.message);
+    if (isMissingFunction(error)) {
+      // Fail closed. See the note above: this is a deployment fault, not a
+      // blip, and failing open here silently gives the product away.
+      captureError(
+        new Error(
+          "claim_free_lookup is missing from the database — the free-tier limit " +
+            "cannot be enforced. Apply supabase/migrations/*_atomic_free_lookup.sql. " +
+            "Serving the teaser until it is present.",
+        ),
+        { tag: "entitlement", stage: "claim_free_lookup_missing", bbl },
+      );
+      return false;
+    }
+
+    // Transient: fail open, but say so out loud rather than swallowing it.
+    captureError(new Error(`could not claim free lookup: ${error.message}`), {
+      tag: "entitlement",
+      stage: "claim_free_lookup",
+      code: error.code ?? null,
+      bbl,
+    });
     return true;
   }
 

@@ -1,10 +1,23 @@
 # Pre-launch feature candidates
 
-**Status:** Proposed, none started · **Last updated:** 2026-08-04
+**Status:** Proposed, none started · **Last updated:** 2026-08-05
 
 What we have *not* built and are considering building before launch. The
 launch blockers are done and merged (#12); this is the layer above them —
 things that change what the product is worth rather than whether it works.
+
+> **Before any of this: the revenue model has to actually work.** A review on
+> 2026-08-05 found the free-tier limit had never enforced in production —
+> `claim_free_lookup` was merged but never applied, so every claim errored,
+> `recordLookup` failed open, and every email got unlimited free reports. Fixed
+> the same day (migration applied, fail-closed on a missing RPC,
+> `npm run check:db` added to catch the class).
+>
+> It is worth stating the lesson plainly, because it reorders this list: **every
+> item below assumes people convert from free to paid, and none of them matter
+> if they don't.** Ship a working paywall before shipping anything that depends
+> on one. The same instinct applies to §1 — verify the subscription tier is
+> priced right *before* building the feature meant to justify it.
 
 Companion docs: [`LAUNCH-CHECKLIST.md`](LAUNCH-CHECKLIST.md) is the gate
 (configuration, accuracy, walkthroughs). [`PLAN.md`](PLAN.md) is the original
