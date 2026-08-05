@@ -270,5 +270,17 @@ surprises.
 - **Reports are generated live, not from a nightly ETL.** PLAN.md §2 argues for
   the ETL; the app currently caches instead. This is workable for launch and it
   is what blocks monitoring, trend history, and provenance control.
-- **No FISP/facade, stop-work-order, vacate-order, or open-complaint data.**
-  Each is deal-blocking and none is in the report.
+- **No FISP/facade, vacate-order, or open-complaint data.** Each is
+  deal-blocking, all three are published and BBL/BIN-keyed, and none is in the
+  report. See [`FEATURES.md`](FEATURES.md) §4–§6.
+- **Stop-work orders are not available at all.** An earlier version of this
+  line listed them alongside the above, which was wrong: checked against the
+  live portal on 2026-08-05, **the city publishes no property-keyed stop-work
+  order dataset.** They can only be inferred from ECB violation types or DOB
+  complaint dispositions. Don't scope this as "add another source."
+- **The "Outstanding balance" figure is incomplete.** It sums ECB/OATH
+  penalties only, and counts none of the ~611k HPD emergency-repair charges
+  assessed directly against properties (`mdbu-nrqn`, `sbnd-xujn`). On an
+  affected building the headline dollar number is understated. This is the one
+  known gap that makes a *displayed* number wrong rather than absent — see
+  [`FEATURES.md`](FEATURES.md) §10.
