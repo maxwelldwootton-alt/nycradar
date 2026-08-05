@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "mcp__Supabase__*",
-      "mcp__Vercel__*"
+      "mcp__Vercel__*",
+      "mcp__github__*"
     ]
   }
 }
