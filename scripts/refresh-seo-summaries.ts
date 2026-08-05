@@ -184,7 +184,14 @@ async function sweepHpd(
   opts: Options,
 ): Promise<number> {
   const clauses = ["bbl IS NOT NULL"];
-  if (opts.borough) clauses.push(`starts_with(bbl, ${soqlString(opts.borough)})`);
+  // `boroid` mirrors DOB's `boro`: a plain numeric column, filterable with a
+  // pushdown-able equality check. The borough number in `bbl` itself is its
+  // leading digit, but there's no column exposing just that digit, and
+  // filtering via `starts_with(bbl, …)` makes Socrata evaluate a function
+  // over every row before it can even begin the grouped aggregate — on this
+  // dataset that alone blew the 30s timeout on every attempt, four attempts
+  // running, on two consecutive citywide-sweep-sized (borough-scoped) runs.
+  if (opts.borough) clauses.push(`boroid=${soqlString(opts.borough)}`);
   let groups = 0;
 
   const pages = sodaPages<{ bbl?: string; violationstatus?: string; n?: string }>(
