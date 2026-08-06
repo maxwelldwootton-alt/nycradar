@@ -230,6 +230,26 @@ Not unit-tested, because the failure modes are in the integrations.
 - [ ] **Share link.** Create one, open it signed-out, confirm it shows the
       sender's data-as-of date rather than regenerating.
 - [ ] **PDF export** renders with the disclaimer and the data-as-of date.
+- [ ] **Verify the source deep-link patterns** (~30 min, needs an unrestricted
+      network — the build sandbox gets a 403 at the proxy for every
+      `*.nyc.gov` host, so this cannot be done from CI or a Claude session).
+
+      `src/lib/nyc/source-links.ts` links each violation row to the city's own
+      record for it. **Every pattern currently ships `unverified`, which means
+      no links render at all** — that is the safe default, because a dead link
+      on a due-diligence report is worse than no link. The candidate URLs in
+      that file were written without access to the portals and are hypotheses,
+      not researched facts.
+
+      The file's header has the step-by-step. In short: pull a real
+      `sourceId`/`dedupKey`/`bin` off a row, build the URL by hand, confirm it
+      lands on that specific record, **re-open it in a private window** (several
+      city portals only work with a warm session), then flip `status` to
+      `verified` and set `verifiedOn`.
+
+      Prefer a search URL that reliably finds the building over a deep record
+      URL that sometimes 404s. Leaving a source `unverified` is a supported
+      outcome — shipping no link beats shipping a broken one.
 
 ---
 
